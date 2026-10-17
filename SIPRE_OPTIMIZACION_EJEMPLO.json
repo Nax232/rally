@@ -1,0 +1,165 @@
+{
+  "fixture_name": "SIPRE Fase 5 MILP lexicografico single-stop",
+  "synthetic_data": true,
+  "version": "optimization-v1-demo",
+  "model_scope": "single_stop_one_sortie_per_vehicle",
+  "emergency_id": "E-DEMO-01",
+  "priority_run_id": "P4-DEMO-01",
+  "planning_horizon_hours": 6,
+  "demands": [
+    {
+      "zone_id": "Z01",
+      "resource_id": "KITS",
+      "quantity": 2,
+      "unit": "kit",
+      "status": "CONFIRMED",
+      "reported_at": "2026-10-16T10:15:00-03:00"
+    },
+    {
+      "zone_id": "Z03",
+      "resource_id": "KITS",
+      "quantity": 2,
+      "unit": "kit",
+      "status": "CONFIRMED",
+      "reported_at": "2026-10-16T10:00:00-03:00"
+    }
+  ],
+  "zones": [
+    {
+      "zone_id": "Z01",
+      "name": "Norte",
+      "priority_score": 0.778734,
+      "omega": {
+        "KITS": 1
+      }
+    },
+    {
+      "zone_id": "Z03",
+      "name": "Rural aislada",
+      "priority_score": 0.654473,
+      "omega": {
+        "KITS": 1
+      }
+    }
+  ],
+  "resources": [
+    {
+      "resource_id": "KITS",
+      "kind": "indivisible_cargo",
+      "unit": "kit",
+      "weight_kg_per_unit": 10,
+      "volume_m3_per_unit": 0.02
+    }
+  ],
+  "depots": [
+    {
+      "depot_id": "D01",
+      "inventory": {
+        "KITS": 3
+      }
+    }
+  ],
+  "vehicles": [
+    {
+      "vehicle_id": "V01",
+      "depot_id": "D01",
+      "available": true,
+      "weight_capacity_kg": 20,
+      "volume_capacity_m3": 0.05,
+      "max_stops": 1
+    },
+    {
+      "vehicle_id": "V02",
+      "depot_id": "D01",
+      "available": true,
+      "weight_capacity_kg": 20,
+      "volume_capacity_m3": 0.05,
+      "max_stops": 1
+    }
+  ],
+  "routes": [
+    {
+      "vehicle_id": "V01",
+      "zone_id": "Z01",
+      "route_status": "VERIFIED_OPEN",
+      "distance_one_way_km": 10,
+      "distance_roundtrip_km": 20,
+      "duration_roundtrip_hours": 1,
+      "network_snapshot_id": "ROAD-DEMO-01"
+    },
+    {
+      "vehicle_id": "V01",
+      "zone_id": "Z03",
+      "route_status": "VERIFIED_OPEN",
+      "distance_one_way_km": 30,
+      "distance_roundtrip_km": 60,
+      "duration_roundtrip_hours": 2,
+      "network_snapshot_id": "ROAD-DEMO-01"
+    },
+    {
+      "vehicle_id": "V02",
+      "zone_id": "Z01",
+      "route_status": "VERIFIED_OPEN",
+      "distance_one_way_km": 10,
+      "distance_roundtrip_km": 20,
+      "duration_roundtrip_hours": 1,
+      "network_snapshot_id": "ROAD-DEMO-01"
+    },
+    {
+      "vehicle_id": "V02",
+      "zone_id": "Z03",
+      "route_status": "VERIFIED_OPEN",
+      "distance_one_way_km": 30,
+      "distance_roundtrip_km": 60,
+      "duration_roundtrip_hours": 2,
+      "network_snapshot_id": "ROAD-DEMO-01"
+    }
+  ],
+  "weights_policy": "one_known_active_need_per_zone=>omega_kit=1",
+  "objective_tolerance": 1e-08,
+  "expected_sipre": {
+    "zone_deliveries": {
+      "Z01": {
+        "KITS": 2
+      },
+      "Z03": {
+        "KITS": 1
+      }
+    },
+    "zone_unmet": {
+      "Z01": {
+        "KITS": 0
+      },
+      "Z03": {
+        "KITS": 1
+      }
+    },
+    "humanitarian_objective": 1.1059705,
+    "total_distance_roundtrip_km": 80.0,
+    "physical_coverage_ratio": 0.75,
+    "recommended_state": "GENERATED",
+    "stage1_status": "OPTIMAL",
+    "stage2_status": "OPTIMAL"
+  },
+  "expected_fifo_baseline": {
+    "first_request_zone": "Z03",
+    "zone_deliveries": {
+      "Z01": {
+        "KITS": 1
+      },
+      "Z03": {
+        "KITS": 2
+      }
+    },
+    "humanitarian_objective": 1.04384,
+    "total_distance_roundtrip_km": 80.0,
+    "physical_coverage_ratio": 0.75
+  },
+  "illustrative_relative_H_improvement_pct": 5.952109518700193,
+  "assertion_notes": [
+    "Only synthetic model objective H improves; physical coverage remains equal.",
+    "Single stop per vehicle; this is not multi-stop CVRP.",
+    "Vehicle to zone assignment can be tied; compare aggregate zone deliveries and total roundtrip km."
+  ],
+  "numeric_tolerance": 1e-06
+}

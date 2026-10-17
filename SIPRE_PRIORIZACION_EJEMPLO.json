@@ -1,0 +1,81 @@
+{
+  "fixture_name": "SIPRE Fase 4 TOPSIS anchored example",
+  "synthetic_data": true,
+  "reference": "SIPRE_PRIORIZACION_v1.md §10",
+  "algorithm": "anchored-topsis-v1",
+  "weights": {
+    "C1": 0.24,
+    "C2": 0.12,
+    "C3": 0.16,
+    "C4": 0.12,
+    "C5": 0.1,
+    "C6": 0.1,
+    "C7": 0.1,
+    "C8": 0.06
+  },
+  "tolerance": 1e-05,
+  "zones": [
+    {
+      "zone_id": "Z01",
+      "name": "Norte",
+      "criteria": {
+        "C1": 0.9,
+        "C2": 0.7,
+        "C3": 0.8,
+        "C4": 0.8,
+        "C5": 0.6,
+        "C6": 0.9,
+        "C7": 0.8,
+        "C8": 0.2
+      },
+      "expected": {
+        "d_minus": 0.31234,
+        "d_plus": 0.088747,
+        "priority_score": 0.778734
+      }
+    },
+    {
+      "zone_id": "Z02",
+      "name": "Centro",
+      "criteria": {
+        "C1": 0.6,
+        "C2": 0.9,
+        "C3": 0.5,
+        "C4": 0.7,
+        "C5": 0.2,
+        "C6": 0.5,
+        "C7": 0.3,
+        "C8": 0.1
+      },
+      "expected": {
+        "d_minus": 0.222917,
+        "d_plus": 0.183772,
+        "priority_score": 0.548127
+      }
+    },
+    {
+      "zone_id": "Z03",
+      "name": "Rural aislada",
+      "criteria": {
+        "C1": 0.55,
+        "C2": 0.35,
+        "C3": 0.9,
+        "C4": 0.6,
+        "C5": 1.0,
+        "C6": 0.8,
+        "C7": 1.0,
+        "C8": 0.9
+      },
+      "expected": {
+        "d_minus": 0.272808,
+        "d_plus": 0.144028,
+        "priority_score": 0.654473
+      }
+    }
+  ],
+  "expected_ranking": [
+    "Z01",
+    "Z03",
+    "Z02"
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "document": "SIPRE_PLAN_EJEMPLO_FASE7.json",
+  "status": "ILLUSTRATIVE_HAND_CALCULATION_NOT_SOLVER_RUN",
+  "source_fixture": "SIPRE_OPTIMIZACION_EJEMPLO.json",
+  "synthetic_data": true,
+  "priority_scores": {
+    "Z01": 0.778734,
+    "Z03": 0.654473
+  },
+  "demand": {
+    "Z01": {
+      "KIT": 2
+    },
+    "Z03": {
+      "KIT": 2
+    }
+  },
+  "stock": {
+    "KIT": 3
+  },
+  "h_theoretical": 1.433207,
+  "methods": {
+    "FIFO_FEASIBLE": {
+      "allocations": {
+        "Z01": {
+          "KIT": 1
+        },
+        "Z03": {
+          "KIT": 2
+        }
+      },
+      "H_raw": 1.04384,
+      "H_norm": 0.7283246593129953,
+      "critical_need_coverage": 0.5,
+      "total_route_km": 80,
+      "unmet_KIT": 1
+    },
+    "SIPRE": {
+      "allocations": {
+        "Z01": {
+          "KIT": 2
+        },
+        "Z03": {
+          "KIT": 1
+        }
+      },
+      "H_raw": 1.1059705,
+      "H_norm": 0.7716753406870047,
+      "critical_need_coverage": 1.0,
+      "total_route_km": 80,
+      "unmet_KIT": 1
+    }
+  },
+  "paired_deltas": {
+    "delta_H_norm": 0.04335068137400948,
+    "delta_H_norm_percentage_points": 4.335068137400948,
+    "delta_critical_coverage_percentage_points": 50,
+    "delta_route_km": 0
+  },
+  "notes": [
+    "F4 DEMO critical threshold p >= .75; Z01 qualifies and Z03 does not.",
+    "One single scenario fixture; not evidence of a generalizable effect.",
+    "Both methods serve 3/4 kits and travel 80km according to F5 illustrative setup."
+  ]
+}

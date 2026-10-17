@@ -1,0 +1,143 @@
+name: sipre
+
+x-python: &python
+  image: sipre-api:phase9
+  build:
+    context: .
+    dockerfile: docker/Dockerfile
+    target: runtime
+    args:
+      PYTHON_IMAGE: ${PYTHON_IMAGE:-library/python:3.12.14-slim-bookworm@sha256:392307d22300de8b5986851a12d9176dfc0fc073e65bf6523ebd7dcbeb23564e}
+  init: true
+  read_only: true
+  tmpfs:
+    - /tmp
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  networks:
+    - sipre
+
+services:
+  db:
+    image: ${POSTGIS_IMAGE:-postgis/postgis:16-3.5@sha256:94146ac37bc61e2322f88016056c5920729cb8c64c8542ed590af8fc2abdac07}
+    environment:
+      POSTGRES_DB: sipre
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Generate .env using configure-local.ps1}
+      SIPRE_MIGRATOR_PASSWORD: ${SIPRE_MIGRATOR_PASSWORD:?Required}
+      SIPRE_APP_PASSWORD: ${SIPRE_APP_PASSWORD:?Required}
+      SIPRE_WORKER_PASSWORD: ${SIPRE_WORKER_PASSWORD:?Required}
+      SIPRE_METABASE_READER_PASSWORD: ${SIPRE_METABASE_READER_PASSWORD:?Required}
+      METABASE_APP_PASSWORD: ${METABASE_APP_PASSWORD:?Required}
+    volumes:
+      - sipre-db:/var/lib/postgresql/data
+      - ./database/bootstrap/10-databases.sh:/docker-entrypoint-initdb.d/10-databases.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d sipre"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
+    networks:
+      - sipre
+
+  migrate:
+    <<: *python
+    command: ["python", "-m", "alembic", "-c", "database/alembic.ini", "upgrade", "head"]
+    environment:
+      SIPRE_DATABASE_URL: ${SIPRE_MIGRATION_DATABASE_URL:?Required}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  api:
+    <<: *python
+    environment:
+      SIPRE_DATABASE_URL: ${SIPRE_DATABASE_URL:?Required}
+      SIPRE_MODE: SIMULATED
+    ports:
+      - "127.0.0.1:${SIPRE_API_PORT:-8000}:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health/ready', timeout=4)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  metabase:
+    image: ${METABASE_IMAGE:-metabase/metabase:v0.64.1@sha256:fcf3ad4c00f303d96c63233967a24f0d0348bbb725d4704ee1961f9185674e13}
+    profiles: ["bi"]
+    environment:
+      MB_DB_TYPE: postgres
+      MB_DB_HOST: db
+      MB_DB_PORT: 5432
+      MB_DB_DBNAME: metabase_app
+      MB_DB_USER: metabase_app
+      MB_DB_PASS: ${METABASE_APP_PASSWORD:?Required}
+    ports:
+      - "127.0.0.1:${SIPRE_METABASE_PORT:-3000}:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - sipre
+
+  worker:
+    <<: *python
+    command: ["python", "-m", "app.worker"]
+    environment:
+      SIPRE_DATABASE_URL: ${SIPRE_WORKER_DATABASE_URL:?Required}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  bootstrap:
+    <<: *python
+    profiles: ["setup"]
+    command: ["python", "-m", "app.bootstrap", "--seed"]
+    environment:
+      SIPRE_DATABASE_URL: ${SIPRE_MIGRATION_DATABASE_URL:?Required}
+      SIPRE_BOOTSTRAP_PASSWORD: ${SIPRE_BOOTSTRAP_PASSWORD:-}
+      SIPRE_DEMO_PASSWORD: ${SIPRE_DEMO_PASSWORD:-}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  worker-smoke:
+    <<: *python
+    profiles: ["check"]
+    command: ["python", "-m", "app.infrastructure_check"]
+    environment:
+      SIPRE_DATABASE_URL: ${SIPRE_WORKER_DATABASE_URL:?Required}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  tests:
+    <<: *python
+    image: sipre-tests:phase9
+    profiles: ["test"]
+    environment:
+      SIPRE_TEST_DATABASE_URL: ${SIPRE_TEST_DATABASE_URL:-}
+      SIPRE_TEST_APP_URL: ${SIPRE_TEST_APP_URL:-}
+      SIPRE_TEST_WORKER_URL: ${SIPRE_TEST_WORKER_URL:-}
+      SIPRE_TEST_READER_URL: ${SIPRE_TEST_READER_URL:-}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: test
+      args:
+        PYTHON_IMAGE: ${PYTHON_IMAGE:-library/python:3.12.14-slim-bookworm@sha256:392307d22300de8b5986851a12d9176dfc0fc073e65bf6523ebd7dcbeb23564e}
+
+volumes:
+  sipre-db:
+
+networks:
+  sipre:

@@ -1,0 +1,222 @@
+{
+  "artifact": "SIPRE_CONTRATOS_FASE6_v1",
+  "status": "DESIGN_ONLY_NOT_IMPLEMENTED",
+  "project": "SIPRE",
+  "version": "1.0",
+  "dashboard": "Metabase OSS READ_ONLY",
+  "priority_model": "AHP geometric mean + fixed ideal TOPSIS",
+  "optimization_model": "MILP two stage lexicographic, one destination per sortie",
+  "simulation_only": true,
+  "schemas": [
+    "core",
+    "ops",
+    "geo",
+    "model",
+    "planning",
+    "audit",
+    "experiments",
+    "analytics"
+  ],
+  "api": [
+    {
+      "method": "POST",
+      "path": "/api/v1/emergencies",
+      "minimum_role": "OPERATOR",
+      "purpose": "Crear emergencia"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/emergencies",
+      "minimum_role": "VIEWER",
+      "purpose": "Listar"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/emergencies/{emergency_id}/zones",
+      "minimum_role": "OPERATOR",
+      "purpose": "Registrar zonas"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/emergencies/{emergency_id}/reports",
+      "minimum_role": "OPERATOR",
+      "purpose": "Registrar reportes"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/emergencies/{emergency_id}/needs",
+      "minimum_role": "OPERATOR",
+      "purpose": "Registrar demandas"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/emergencies/{emergency_id}/snapshots",
+      "minimum_role": "ANALYST",
+      "purpose": "Congelar snapshot"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/emergencies/{emergency_id}/priority-runs",
+      "minimum_role": "ANALYST",
+      "purpose": "Ejecutar F4"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/priority-runs/{run_id}/results",
+      "minimum_role": "VIEWER",
+      "purpose": "Detalle F4"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/emergencies/{emergency_id}/optimization-runs",
+      "minimum_role": "ANALYST",
+      "purpose": "Ejecutar F5"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/optimization-runs/{run_id}/results",
+      "minimum_role": "VIEWER",
+      "purpose": "Detalle F5"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/recommendations/{recommendation_id}/accept",
+      "minimum_role": "DECISION_MAKER",
+      "purpose": "Aprobación humana transaccional"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/recommendations/{recommendation_id}/reject",
+      "minimum_role": "DECISION_MAKER",
+      "purpose": "Rechazo auditado"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/recommendations/{recommendation_id}/request-reoptimization",
+      "minimum_role": "DECISION_MAKER",
+      "purpose": "Reoptimizar"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/decisions/{decision_id}",
+      "minimum_role": "VIEWER",
+      "purpose": "Consultar decisión"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/experiments/runs",
+      "minimum_role": "ANALYST",
+      "purpose": "Ejecutar experimento"
+    }
+  ],
+  "role_codes": [
+    "ADMIN",
+    "OPERATOR",
+    "ANALYST",
+    "DECISION_MAKER",
+    "VIEWER"
+  ],
+  "states": {
+    "emergency": [
+      "DRAFT",
+      "ACTIVE",
+      "UNDER_ANALYSIS",
+      "PLAN_GENERATED",
+      "PLAN_VALIDATED",
+      "CLOSED",
+      "CANCELLED"
+    ],
+    "report_evidence": [
+      "OBSERVED",
+      "ESTIMATED_APPROVED",
+      "UNKNOWN"
+    ],
+    "route": [
+      "VERIFIED_OPEN",
+      "VERIFIED_RESTRICTED",
+      "BLOCKED",
+      "UNKNOWN"
+    ],
+    "recommendation": [
+      "GENERATED",
+      "UNDER_REVIEW",
+      "ACCEPTED",
+      "MODIFIED",
+      "REJECTED",
+      "STALE"
+    ],
+    "solver": [
+      "OPTIMAL",
+      "FEASIBLE_NOT_PROVEN",
+      "NO_FEASIBLE_SOLUTION",
+      "NO_SOLUTION_FOUND",
+      "MODEL_INVALID",
+      "SOLVER_ERROR",
+      "LOGISTICS_NOT_OPTIMIZED",
+      "NO_AVAILABLE_RESOURCES"
+    ],
+    "async_job": [
+      "QUEUED",
+      "RUNNING",
+      "SUCCESS",
+      "FAILED"
+    ]
+  },
+  "analytics_views": [
+    "v_emergency_overview",
+    "v_zone_priority_latest",
+    "v_zone_priority_history",
+    "v_priority_factors",
+    "v_resource_inventory",
+    "v_transport_availability",
+    "v_recommended_allocations",
+    "v_unmet_needs",
+    "v_human_decisions",
+    "v_route_conditions",
+    "v_experiment_comparison",
+    "v_operational_kpis"
+  ],
+  "mandatory_checks": [
+    "NO_NULL_AS_ZERO",
+    "NO_OVERSTOCK",
+    "NO_OVERWEIGHT",
+    "NO_OVERVOLUME",
+    "NO_BLOCKED_OR_UNKNOWN_ROUTE",
+    "SNAPSHOT_CONSISTENCY",
+    "H_FINAL_GE_H_STAR_MINUS_EPSILON",
+    "NO_DUPLICATE_PHYSICAL_ASSET",
+    "HUMAN_DECISION_SEPARATE",
+    "METABASE_READONLY",
+    "APPROVAL_TRANSACTION_ATOMIC",
+    "SIMULATED_FLAG"
+  ],
+  "run_context": {
+    "snapshot_id": "uuid",
+    "emergency_id": "uuid",
+    "input_revision": "int",
+    "network_revision": "int",
+    "inventory_revision": "int",
+    "criteria_profile_id": "uuid",
+    "ahp_profile_id": "uuid",
+    "optimization_profile_id": "uuid",
+    "as_of_time": "datetime-with-offset"
+  },
+  "metabase_connection": {
+    "data_db": "sipre",
+    "metadata_db": "metabase_app",
+    "allowed_schema": "analytics",
+    "grants": [
+      "CONNECT",
+      "USAGE analytics",
+      "SELECT ON analytics views"
+    ],
+    "forbidden": [
+      "INSERT",
+      "UPDATE",
+      "DELETE",
+      "DDL",
+      "access raw tables"
+    ]
+  },
+  "note": "Reference contract for later Codex implementation; not a deployed interface, tested database schema, or formal OpenAPI specification."
+}

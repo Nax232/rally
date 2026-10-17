@@ -1,0 +1,123 @@
+{
+  "document": "SIPRE_RESULTADOS_SCHEMA_v1.json",
+  "protocol_version": "experiment-protocol-v1.0",
+  "status": "CONTRACT_NOT_EXPERIMENTAL_DATA",
+  "synthetic_data_only": true,
+  "csv_long": {
+    "file": "experiment_metrics_long.csv",
+    "columns": [
+      "experiment_run_id",
+      "scenario_id",
+      "scenario_family",
+      "seed",
+      "method",
+      "metric_code",
+      "resource_id",
+      "value",
+      "unit",
+      "status",
+      "protocol_version",
+      "fixture_sha256",
+      "software_commit_sha",
+      "simulated"
+    ],
+    "valid_methods": [
+      "FIFO_FEASIBLE",
+      "SIPRE"
+    ],
+    "null_value_policy": "empty CSV cell for NA; never zero",
+    "metrics_definition_version": "kpi-v1"
+  },
+  "csv_pairs": {
+    "file": "experiment_pairs.csv",
+    "columns": [
+      "scenario_id",
+      "scenario_family",
+      "seed",
+      "sipre_status",
+      "fifo_status",
+      "h_norm_sipre",
+      "h_norm_fifo",
+      "delta_h_norm",
+      "critical_coverage_sipre",
+      "critical_coverage_fifo",
+      "delta_critical_coverage",
+      "km_sipre",
+      "km_fifo",
+      "delta_km",
+      "comparable",
+      "exclusion_reason",
+      "fixture_sha256"
+    ]
+  },
+  "run_manifest_fields": [
+    "scenario_family",
+    "scenario_id",
+    "seed",
+    "method",
+    "simulated",
+    "protocol_version",
+    "snapshot_id",
+    "fixture_sha256",
+    "parameters_sha256",
+    "network_revision",
+    "priority_run_id",
+    "solver_version",
+    "software_commit_sha",
+    "python_version",
+    "started_at",
+    "finished_at",
+    "stage1_status",
+    "stage2_status",
+    "objective_value",
+    "logistic_cost",
+    "solver_gap",
+    "validation_status",
+    "hardware_info",
+    "error_or_exclusion_reason"
+  ],
+  "metric_catalog": {
+    "H_norm": {
+      "unit": "ratio",
+      "definition": "H_raw / sum_i(p_i * sum_j omega_ij active), NA when denominator 0"
+    },
+    "critical_need_coverage": {
+      "unit": "ratio",
+      "definition": "mean fulfilled_fraction over active known needs in F4 zones CRITICA >=0.75; NA if none"
+    },
+    "H_raw": {
+      "unit": "dimensionless",
+      "definition": "humanitarian objective F5"
+    },
+    "mean_known_need_coverage": {
+      "unit": "ratio",
+      "definition": "mean of fulfilled/known positive demand by active (zone,need_type)"
+    },
+    "unmet_by_resource": {
+      "unit": "per resource SKU",
+      "definition": "sum unmet per resource; resource_id required"
+    },
+    "total_route_km": {
+      "unit": "km",
+      "definition": "sum verified in-scenario selected route km, including return per scenario profile"
+    },
+    "critical_zones_without_assignment": {
+      "unit": "zones",
+      "definition": "count of CRITICA zones with positive known need and 0 delivered assigned"
+    },
+    "unknown_demand_zone_count": {
+      "unit": "zones",
+      "definition": "count zones with at least one unresolved unknown demand"
+    },
+    "total_pipeline_ms": {
+      "unit": "ms",
+      "definition": "wall clock runtime priority + plan with environment metadata"
+    }
+  },
+  "not_allowed": [
+    "summing multiple resource units",
+    "reporting missing as zero",
+    "reporting solver failure as optimal",
+    "claiming simulation validates real operations"
+  ]
+}

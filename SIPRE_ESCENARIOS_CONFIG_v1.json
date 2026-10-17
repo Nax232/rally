@@ -1,0 +1,221 @@
+{
+  "project": "SIPRE",
+  "document": "SIPRE_ESCENARIOS_CONFIG_v1.json",
+  "protocol_version": "experiment-protocol-v1.0",
+  "status": "DESIGN_ONLY_NOT_EXECUTED",
+  "synthetic_data": true,
+  "seed_policy": {
+    "confirmatory_seeds": [
+      101,
+      102,
+      103,
+      104,
+      105,
+      106,
+      107,
+      108,
+      109,
+      110,
+      111,
+      112
+    ],
+    "per_family": 12,
+    "family_count": 4,
+    "expected_scenarios": 48,
+    "methods": [
+      "FIFO_FEASIBLE",
+      "SIPRE"
+    ],
+    "expected_pair_runs": 96,
+    "pilot_seeds": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "stress_seeds": [
+      501,
+      502,
+      503
+    ],
+    "bootstrap_seed": 90210
+  },
+  "defaults": {
+    "planning_horizon_hours": 6,
+    "disaster_first_hours_max": 72,
+    "as_of": "2026-10-16T12:00:00-03:00",
+    "one_vehicle_one_sortie_one_destination": true,
+    "return_trip_included": true,
+    "max_solver_seconds_proposed": 15,
+    "epsilon_h_from_phase_5": 1e-08,
+    "network_routes": "verified_within_scenario_only",
+    "scenario_kind": "SIMULATED",
+    "profile_weights_status": "DEMO_NOT_EXPERT_VALIDATED"
+  },
+  "common_resources": [
+    {
+      "resource_id": "KIT",
+      "unit": "kit",
+      "discrete": true,
+      "mass_kg_per_unit": 10,
+      "volume_m3_per_unit": 0.02
+    },
+    {
+      "resource_id": "AGUA_L",
+      "unit": "L",
+      "discrete": false,
+      "mass_kg_per_unit": 1.0,
+      "volume_m3_per_unit": 0.001
+    },
+    {
+      "resource_id": "RESCATE",
+      "unit": "unidad_equipada",
+      "discrete": true,
+      "is_specialized_asset": true
+    }
+  ],
+  "families": [
+    {
+      "id": "E01",
+      "name": "moderate",
+      "zones": 8,
+      "cargo_vehicles": 6,
+      "specialized_units": 3,
+      "depots": 2,
+      "stock_to_known_demand_target_range": [
+        0.9,
+        1.1
+      ],
+      "blocked_edge_fraction": [
+        0.0,
+        0.05
+      ],
+      "missing_substantive_fraction": [
+        0,
+        0.05
+      ],
+      "note": "comportamiento bajo oferta cercana a demanda"
+    },
+    {
+      "id": "E02",
+      "name": "severe_shortage",
+      "zones": 12,
+      "cargo_vehicles": 5,
+      "specialized_units": 2,
+      "depots": 2,
+      "stock_to_known_demand_target_range": [
+        0.4,
+        0.6
+      ],
+      "blocked_edge_fraction": [
+        0.0,
+        0.1
+      ],
+      "missing_substantive_fraction": [
+        0.0,
+        0.1
+      ],
+      "note": "demanda sustancialmente superior a oferta"
+    },
+    {
+      "id": "E03",
+      "name": "blocked_network",
+      "zones": 10,
+      "cargo_vehicles": 6,
+      "specialized_units": 3,
+      "depots": 2,
+      "stock_to_known_demand_target_range": [
+        0.7,
+        0.9
+      ],
+      "blocked_edge_fraction": [
+        0.25,
+        0.4
+      ],
+      "missing_substantive_fraction": [
+        0.0,
+        0.1
+      ],
+      "note": "crear grafo base conectado antes de aplicar bloqueo; reportar aislamiento"
+    },
+    {
+      "id": "E04",
+      "name": "incomplete_information",
+      "zones": 10,
+      "cargo_vehicles": 6,
+      "specialized_units": 3,
+      "depots": 2,
+      "stock_to_known_demand_target_range": [
+        0.6,
+        0.8
+      ],
+      "blocked_edge_fraction": [
+        0.0,
+        0.1
+      ],
+      "missing_substantive_fraction": [
+        0.25,
+        0.4
+      ],
+      "has_hidden_oracle": true,
+      "note": "oracle sintetico separado de observed_snapshot; algoritmos no acceden a él"
+    }
+  ],
+  "generator_requirements": [
+    "congelar distribuciones y versiones de RNG antes de generar la cohorte confirmatoria",
+    "materializar fixtures y sha256 de bytes canonicos",
+    "demanda nula diferente a desconocida",
+    "rutas evaluadas sobre grafo de escenario",
+    "campos scenario_id,scenario_family,seed,simulated,as_of_time,input_snapshot,oracle_separado_si_E04"
+  ],
+  "baseline": {
+    "code": "FIFO_FEASIBLE",
+    "sort": [
+      "reported_at_UTC",
+      "request_id"
+    ],
+    "candidate_selection": [
+      "route_cost_asc",
+      "vehicle_id",
+      "depot_id"
+    ],
+    "same_feasibility_validator": true,
+    "use_priority_for_allocation": false,
+    "use_priority_for_evaluation": true
+  },
+  "kpis_primary": [
+    "H_norm",
+    "critical_need_coverage"
+  ],
+  "kpis_secondary": [
+    "H_raw",
+    "mean_known_need_coverage",
+    "unmet_by_resource",
+    "unmet_specialized",
+    "total_route_km",
+    "total_route_hours",
+    "km_per_H_raw",
+    "used_vehicle_ratio",
+    "used_vehicle_load_kg_ratio",
+    "critical_zones_without_assignment",
+    "unknown_demand_zone_count",
+    "needs_verification_count",
+    "priority_interval_width",
+    "stage1_runtime_ms",
+    "stage2_runtime_ms",
+    "total_pipeline_ms",
+    "synthetic_deprivation_report"
+  ],
+  "analysis": {
+    "unit": "matched_instance_family_seed",
+    "bootstrap_B_optional": 5000,
+    "bootstrap_stratified_by_family": true,
+    "report_all_48_even_failures": true,
+    "no_unsupported_real_world_claims": true
+  },
+  "profile_refs": [
+    "SIPRE_PRIORIZACION_v1.md",
+    "SIPRE_OPTIMIZACION_v1.md",
+    "SIPRE_ARQUITECTURA_v1.md"
+  ]
+}
