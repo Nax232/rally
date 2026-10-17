@@ -28,7 +28,8 @@ const state = {
     ['13:52:11','María Rojas','Ajuste de prioridad en Z-04','Decisión humana'],
     ['13:41:38','SIPRE DEMO','Escenario E01 cargado','Simulado']
   ],
-  settings: {autoRefresh:true, uncertainty:true, humanGate:true, readonlyAnalytics:true}
+  settings: {autoRefresh:true, uncertainty:true, humanGate:true, readonlyAnalytics:true},
+  actionPlan: {status:'Pendiente aprobación', supervisor:'María Rojas', createdAt:'14:32 CLT', emergency:'Frente de mal tiempo · Viña del Mar', routeZone:'Z-04'}
 };
 
 const $ = (q, root=document) => root.querySelector(q);
@@ -39,9 +40,28 @@ const riskTag = r => `<span class="tag ${r==='critical'?'red':r==='high'?'orange
 const btn = (label, cls='', action='') => `<button class="btn ${cls}" ${action ? `data-action="${action}"` : ''}>${label}</button>`;
 
 function layoutHead(eyebrow, title, sub, actions='') { return `<div class="view-head"><div><p class="eyebrow">${eyebrow}</p><h1>${title}</h1><p class="subhead">${sub}</p></div><div class="head-actions">${actions}</div></div>`; }
+const PATH_NETWORK = {
+  nodes: {
+    base:[24,78], mall:[17,18], stadium:[43,30], mirador:[55,38], cesfam:[72,45], terminal:[32,57], interclinica:[39,69], universidad:[72,88]
+  },
+  edges: [['base','terminal',1.0],['terminal','interclinica',1.18],['interclinica','stadium',1.05],['terminal','stadium',1.12],['stadium','mall',1.0],['stadium','mirador',1.08],['mirador','cesfam',1.16],['cesfam','universidad',1.22],['interclinica','universidad',1.05],['mirador','interclinica',1.14]]
+};
+const ZONE_NODE = {'Z-01':'mall','Z-02':'stadium','Z-03':'mirador','Z-04':'cesfam','Z-05':'terminal','Z-06':'interclinica'};
+const BLOCKED_ROADS = new Set();
+function pathDistance(a,b){return Math.hypot(a[0]-b[0],a[1]-b[1]);}
+function weightedNeighbours(node){return PATH_NETWORK.edges.flatMap(([a,b,weight])=>a===node?[[b,weight]]:b===node?[[a,weight]]:[]);}
+function weightedPath(start,goal){
+  const open=[start], came=new Map(), g=new Map([[start,0]]), f=new Map([[start,pathDistance(PATH_NETWORK.nodes[start],PATH_NETWORK.nodes[goal])]]);
+  while(open.length){open.sort((a,b)=>(f.get(a)||Infinity)-(f.get(b)||Infinity));const current=open.shift();if(current===goal){const path=[current];while(came.has(path[0]))path.unshift(came.get(path[0]));return {nodes:path,distance:g.get(goal)||0};}
+    weightedNeighbours(current).forEach(([next,weight])=>{const key=`${current}:${next}`;if(BLOCKED_ROADS.has(key)||BLOCKED_ROADS.has(`${next}:${current}`))return;const tentative=(g.get(current)??Infinity)+pathDistance(PATH_NETWORK.nodes[current],PATH_NETWORK.nodes[next])*weight;if(tentative<(g.get(next)??Infinity)){came.set(next,current);g.set(next,tentative);f.set(next,tentative+pathDistance(PATH_NETWORK.nodes[next],PATH_NETWORK.nodes[goal]));if(!open.includes(next))open.push(next);}});
+  }return {nodes:[],distance:0};
+}
+function routeForZone(id){const target=ZONE_NODE[id]||'cesfam';return weightedPath('base',target);}
+function routePolyline(route){return route.nodes.map(n=>PATH_NETWORK.nodes[n].join(',')).join(' ');}
 function mapMarkup() {
-  const points = [['Z-01',20,42],['Z-02',37,63],['Z-03',50,31],['Z-04',67,53],['Z-05',77,72],['Z-06',82,30]];
-  return `<div class="map-card card"><div class="card-head"><div><h3>Mapa operacional</h3><small>Capas territoriales · actualización ${state.settings.autoRefresh?'en vivo':'manual'}</small></div><div class="map-toolbar"><button class="tool-chip active">Zonas</button><button class="tool-chip">Recursos</button><button class="tool-chip">Rutas</button></div></div><div class="map-canvas" id="mapCanvas"><div class="map-float"><button>＋</button><button>−</button><button>⌖</button></div><span class="map-label" style="left:18%;top:20%">TALCAHUANO</span><span class="map-label" style="left:52%;top:17%">CONCEPCIÓN</span><span class="map-label" style="left:63%;top:78%">ARAUCO</span><span class="map-label" style="left:29%;top:78%">CORONEL</span>${points.map(([id,x,y])=>{const z=zone(id);return `<button class="zone ${z.risk} ${state.selectedZone===id?'selected':''}" data-zone="${id}" style="left:${x}%;top:${y}%" title="${esc(z.name)}"><span>${id.slice(-2)}</span></button>`}).join('')}<i class="route" style="left:23%;top:52%;width:39%;transform:rotate(-15deg)"></i><i class="route" style="left:41%;top:61%;width:30%;transform:rotate(23deg)"></i><i class="route blocked" style="left:61%;top:54%;width:22%;transform:rotate(39deg)"></i><div class="legend"><span><i style="background:#ff5264"></i>Crítica</span><span><i style="background:#f19a45"></i>Alta</span><span><i style="background:#d8b445"></i>Media</span><span><i style="background:#3fc993"></i>Baja</span><span><i style="background:#f05d6b"></i>Ruta bloqueada</span></div></div></div>`;
+  const points = [['Z-01','mall'],['Z-02','stadium'],['Z-03','mirador'],['Z-04','cesfam'],['Z-05','terminal'],['Z-06','interclinica']];
+  const route=routeForZone(state.selectedZone); const selected=zone(state.selectedZone);
+  return `<div class="map-card card"><div class="card-head"><div><h3>Mapa operacional</h3><small>Red vial ponderada · A* · ${route.distance.toFixed(1)} u de distancia estimada</small></div><div class="map-toolbar"><button class="tool-chip active">Zonas</button><button class="tool-chip" data-action="recalculate-path">↻ Recalcular ruta</button><button class="tool-chip" data-action="open-action-plan">Plan de acción</button></div></div><div class="map-canvas" id="mapCanvas"><div class="map-float"><button>＋</button><button>−</button><button>⌖</button></div><svg class="path-overlay" viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="Ruta recomendada"><polyline points="${routePolyline(route)}" fill="none" stroke="#45d39c" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 1"/><circle cx="${PATH_NETWORK.nodes.base[0]}" cy="${PATH_NETWORK.nodes.base[1]}" r="1.6" fill="#4d9dff"/><circle cx="${PATH_NETWORK.nodes[ZONE_NODE[state.selectedZone]][0]}" cy="${PATH_NETWORK.nodes[ZONE_NODE[state.selectedZone]][1]}" r="1.7" fill="#fff"/></svg>${points.map(([id,node])=>{const z=zone(id),p=PATH_NETWORK.nodes[node];return `<button class="zone ${z.risk} ${state.selectedZone===id?'selected':''}" data-zone="${id}" style="left:${p[0]}%;top:${p[1]}%" title="${esc(z.name)}"><span>${id.slice(-2)}</span></button>`}).join('')}<div class="map-route-info"><strong>Ruta recomendada · ${esc(selected.name)}</strong><span>Base de respuesta → ${esc(selected.need)} · ${route.distance.toFixed(1)} u · ${route.nodes.length} hitos</span></div><div class="legend"><span><i style="background:#ff5264"></i>Crítica</span><span><i style="background:#f19a45"></i>Alta</span><span><i style="background:#d8b445"></i>Media</span><span><i style="background:#3fc993"></i>Baja</span><span><i style="background:#45d39c"></i>Ruta A* ponderada</span></div></div></div>`;
 }
 function selectedZoneCard() { const z=zone(state.selectedZone); return `<div class="card detail-panel"><div class="section-title"><h2>${esc(z.name)}</h2>${riskTag(z.risk)}</div><p>Zona seleccionada · Datos territoriales simulados al 17 oct 2026, 14:30 CLT.</p><div class="stat-list"><div class="stat-box"><small>Población afectada</small><strong>${z.pop}</strong></div><div class="stat-box"><small>Puntaje compuesto</small><strong>${z.score.toFixed(2)}</strong></div><div class="stat-box"><small>Necesidad principal</small><strong>${z.need}</strong></div><div class="stat-box"><small>Cobertura estimada</small><strong>${z.coverage}%</strong></div></div>${btn('Ver ficha de zona','',`zone-detail:${z.id}`)}</div>`; }
 function overview() {

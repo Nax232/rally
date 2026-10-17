@@ -19,3 +19,17 @@
 .map-canvas .zone[data-zone="Z-04"] { left: 72% !important; top: 45% !important; }
 .map-canvas .zone[data-zone="Z-05"] { left: 32% !important; top: 57% !important; }
 .map-canvas .zone[data-zone="Z-06"] { left: 39% !important; top: 69% !important; }
+.path-overlay { position:absolute; inset:0; width:100%; height:100%; z-index:2; pointer-events:none; filter:drop-shadow(0 0 4px rgba(69,211,156,.65)); }
+.map-route-info { position:absolute; right:13px; bottom:13px; z-index:4; max-width:220px; padding:8px 10px; border:1px solid rgba(69,211,156,.42); border-radius:6px; background:rgba(8,22,35,.88); box-shadow:0 5px 20px rgba(0,0,0,.25); }
+.map-route-info strong,.map-route-info span { display:block; font-size:9px; }
+.map-route-info strong { color:#baf5d8; margin-bottom:3px; }
+.map-route-info span { color:#9ab5ac; }
+.action-plan { display:grid; gap:8px; margin-top:14px; }
+.plan-step { display:grid; grid-template-columns:28px 1fr 22px; gap:9px; align-items:center; padding:10px; border:1px solid #29405a; background:#17273b; border-radius:7px; }
+.plan-step b { color:#65b5ff; font-family:monospace; font-size:11px; }
+.plan-step strong,.plan-step span { display:block; }
+.plan-step strong { font-size:11px; }
+.plan-step span { font-size:9px; color:#8da4bc; margin-top:3px; }
+.plan-step i { font-style:normal; color:#45d39c; text-align:center; }
+.plan-step.pending { border-color:#896a35; background:#302b22; }
+.plan-step.pending b,.plan-step.pending i { color:#f5c85b; }
