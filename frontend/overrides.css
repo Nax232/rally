@@ -2,23 +2,9 @@
 .route { display: none !important; }
 .modal-backdrop[hidden] { display: none !important; }
 
-/* Cartografía de referencia aportada para la demo: Viña del Mar. */
-.map-canvas {
-  background-image: linear-gradient(180deg, rgba(8, 24, 42, .08), rgba(8, 24, 42, .18)), url("assets/viña-del-mar-operational-map.png") !important;
-  background-size: cover !important;
-  background-position: center !important;
-}
 .map-canvas::before, .map-canvas::after { opacity: .08; }
-.map-canvas .map-label { display: none; }
-
-/* Puntos ubicados sobre hitos visibles de la imagen: Mall Marina, Estadio Sausalito,
-   Mirador Padre Hurtado, CESFAM Miraflores Alto, Terminal de Buses e Interclínica. */
-.map-canvas .zone[data-zone="Z-01"] { left: 17% !important; top: 18% !important; }
-.map-canvas .zone[data-zone="Z-02"] { left: 43% !important; top: 30% !important; }
-.map-canvas .zone[data-zone="Z-03"] { left: 55% !important; top: 38% !important; }
-.map-canvas .zone[data-zone="Z-04"] { left: 72% !important; top: 45% !important; }
-.map-canvas .zone[data-zone="Z-05"] { left: 32% !important; top: 57% !important; }
-.map-canvas .zone[data-zone="Z-06"] { left: 39% !important; top: 69% !important; }
+.map-canvas .map-label { z-index: 3; color:#92b3cc; text-shadow:0 1px 3px #071321; }
+.map-canvas .street-label { font-size:9px; color:#9eb8cc; background:rgba(9,22,36,.68); padding:2px 4px; border-radius:3px; letter-spacing:.2px; }
 .path-overlay { position:absolute; inset:0; width:100%; height:100%; z-index:2; pointer-events:none; filter:drop-shadow(0 0 4px rgba(69,211,156,.65)); }
 .map-route-info { position:absolute; right:13px; bottom:13px; z-index:4; max-width:220px; padding:8px 10px; border:1px solid rgba(69,211,156,.42); border-radius:6px; background:rgba(8,22,35,.88); box-shadow:0 5px 20px rgba(0,0,0,.25); }
 .map-route-info strong,.map-route-info span { display:block; font-size:9px; }
