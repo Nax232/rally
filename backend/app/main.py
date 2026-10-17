@@ -36,7 +36,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application = FastAPI(
         title="SIPRE — Backend SIMULATED",
         version=__version__,
-        description="Fase 9 en desarrollo. SIPRE recomienda; la autoridad humana decide.",
+        description="Prototipo académico SIMULATED. SIPRE recomienda; la autoridad humana decide.",
         lifespan=lifespan,
     )
     application.state.settings = config

@@ -11,7 +11,8 @@ depends_on = None
 
 
 def upgrade():
-    sql = (Path(__file__).parent.parent / "sql" / "0005_gis_network.sql").read_text(encoding="utf-8")
+    sql_path = Path(__file__).parent.parent / "sql" / "0005_gis_network.sql"
+    sql = sql_path.read_text(encoding="utf-8")
     op.execute(sql)
     op.execute(
         "CREATE TRIGGER road_nodes_immutable BEFORE UPDATE OR DELETE ON geo.road_nodes "

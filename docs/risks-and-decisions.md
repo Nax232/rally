@@ -2,6 +2,15 @@
 
 Fecha: 2026-10-16, America/Santiago. Estado: propuesta para aprobación humana. Ninguna decisión pendiente se considera aprobada por figurar aquí. Fuentes F4–F7 permanecen intactas.
 
+**Estado actualizado al 2026-10-17:** este archivo conserva el historial de decisiones de F8;
+las notas antiguas sobre falta de F2/F3, PostgreSQL, Docker o primer commit ya no describen el
+repositorio actual. D01 y D24 quedaron resueltas con archivos y validaciones reales. El usuario
+eligió explícitamente mantener sólo `SIMULATED` (C01). C02 (cuatro estados de emergencia) y C03
+(`DECISION_MAKER` como nombre técnico de DECIDER) son refinamientos documentados, sin cambiar
+F3/F6. D18 fue implementada y probada en H7, con revisión humana del hito aún pendiente.
+Evidencia vigente: [cierre F9](phase9-closeout.md), [pruebas](phase9-test-evidence.md) y
+[brechas](phase9-gap-analysis.md).
+
 ## Regla de autoridad
 
 F4 rige priorización; F5, optimización; F6, arquitectura; F7, experimentación. La solicitud de F8 rige el alcance actual: sólo documentos. Ante conflicto entre dominios, registrar y aprobar una resolución versionada; no elegir silenciosamente una fórmula. Los identificadores D/R de este documento son de planificación, no requisitos oficiales del SRS.
@@ -57,12 +66,12 @@ F4 rige priorización; F5, optimización; F6, arquitectura; F7, experimentación
 
 Estado inicial de D01–D25: ABIERTO (las propuestas no constituyen cambios en las fuentes). Registrar al resolver: ID, alternativa aceptada, motivo, aprobador, fecha, versiones/hashes afectados, hitos desbloqueados y pruebas requeridas. No cerrar por paso del tiempo ni por falta de respuesta.
 
-Actualización F9: usuario autorizó continuar Fase 9 y entregó pauta (D23 resuelta). A la consulta por SRS/formulación respondió «Aportaré la formulación y el SRS»: D01 sigue abierta; el trabajo se limita a infraestructura mientras llegan. Python 3.12.14 del entorno está disponible y las dependencias se instalaron localmente, pero D24 sigue abierta por ausencia de Docker daemon/PostgreSQL. No se consideran resueltas las decisiones de negocio/experimentos por esta autorización. Evidencia en [phase9-status.md](phase9-status.md).
+Registro histórico F9, 2026-10-16: usuario autorizó continuar Fase 9 y entregó pauta (D23 resuelta). A la consulta por SRS/formulación respondió «Aportaré la formulación y el SRS»; en ese momento D01 seguía abierta y el trabajo se limitaba a infraestructura. Python 3.12.14 estaba disponible, pero Docker/PostgreSQL aún no habían sido validados. Este estado fue superado por la evidencia del 2026-10-17 indicada al inicio del documento.
 
 Primera aprobación solicitada: plan F8 y alcance de H1; monolito/UI ligera/worker SQL/stack candidato; obtener F2/F3 y pauta o autorizar explícitamente H1 limitado mientras se aportan. D03 y D05 bloquean confirmatorio, no el trabajo documental ni la infraestructura inicial. Cada siguiente hito necesita nueva autorización explícita del usuario.
 
 
 ## Actualización de auditoría F9 — 2026-10-16
 
-F2 y F3 ya están disponibles como `SIPRE_FORMULACION_v1.md` y `SIPRE_SRS_v1.md` en la raíz y fueron revisados completos. Las referencias anteriores a su ausencia describen el estado previo. D01 queda subsanada en cuanto a recepción; ratificación y discrepancias quedan pendientes. La Fase 9 permanece **BLOCKED** por infraestructura sin validación online y H2–H4 incompletos. La revisión actual sólo modifica documentación. Dictamen vigente: [phase9-closeout.md](phase9-closeout.md).
+F2 y F3 ya están disponibles como `SIPRE_FORMULACION_v1.md` y `SIPRE_SRS_v1.md` en la raíz y fueron revisados completos. Las referencias anteriores a su ausencia describen el estado previo. En esa auditoría histórica, Fase 9 permanecía **BLOCKED** por infraestructura sin validación online y H2–H4 incompletos. Posteriormente se implementaron y verificaron; dictamen vigente: [phase9-closeout.md](phase9-closeout.md).
 

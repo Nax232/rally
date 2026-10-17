@@ -296,8 +296,9 @@ def test_snapshot_job_and_closed_history(setup, env):
     assert result["state"] == "SUCCESS", result
     before = analyst.get("/api/v1/snapshots/" + snap["snapshot_id"]).json()
     assert before["payload"]["mode"] == "SIMULATED"
+    assert before["payload"]["network_revision"] == before["network_revision"]
     assert before["fingerprint"] == snap["fingerprint"]
-    s["post"](analyst, f"/emergencies/{e}/priority-runs", {}, 501)
+    s["post"](analyst, f"/emergencies/{e}/optimization-runs", {}, 501)
     op = s["clients"]["OPERATOR"]
     revision = op.get(f"/api/v1/emergencies/{e}").json()["input_revision"]
     payload = {
@@ -669,3 +670,245 @@ def test_expired_sessions_are_pruned_at_next_login(setup, env):
     )
     with env["owner"].connect() as db:
         assert db.execute(count_expired).scalar() == 0
+
+
+def test_priority_job_persists_exploratory_results_without_decisions(setup, env, monkeypatch):
+    s = setup
+    eid = s["emergency"]
+    analyst = s["clients"]["ANALYST"]
+    viewer = s["clients"]["VIEWER"]
+    snapshot = s["post"](
+        analyst, f"/emergencies/{eid}/snapshots", {"cutoff_at": datetime.now(UTC).isoformat()}
+    )
+    path = f"/emergencies/{eid}/priority-runs"
+    assert s["post"](viewer, path, {"snapshot_id": snapshot["snapshot_id"]}, 403)
+    other = s["post"](
+        s["clients"]["OPERATOR"],
+        "/emergencies",
+        {
+            "name": "Other priority incident",
+            "hazard_type": "SIMULATED",
+            "territory": "Demo",
+            "description": "Scope check",
+            "start_at": (datetime.now(UTC) - timedelta(seconds=1)).isoformat(),
+        },
+    )["emergency_id"]
+    s["post"](
+        s["clients"]["ADMIN"],
+        f"/emergencies/{other}/members",
+        {"user_id": str(s["users"]["ANALYST"][0])},
+    )
+    s["post"](
+        analyst,
+        f"/emergencies/{other}/priority-runs",
+        {"snapshot_id": snapshot["snapshot_id"]},
+        422,
+    )
+    key = uuid4().hex
+    queued = s["post"](analyst, path, {"snapshot_id": snapshot["snapshot_id"]}, 202, key)
+    assert s["post"](analyst, path, {"snapshot_id": snapshot["snapshot_id"]}, 202, key) == queued
+    assert queued["profile_validation"] == "SYNTHETIC_REVIEW_PENDING"
+    from app.prioritization.core import ModelError
+
+    def missing_profile():
+        raise ModelError("PROFILE_MISSING")
+
+    monkeypatch.setattr("app.api.demo_priority_profile", missing_profile)
+    s["post"](analyst, path, {"snapshot_id": snapshot["snapshot_id"]}, 409)
+    monkeypatch.undo()
+    assert run_once(env["worker"])
+    job = analyst.get("/api/v1/jobs/" + queued["job_id"]).json()
+    assert job["state"] == "SUCCESS", job
+    response = viewer.get("/api/v1/priority-runs/" + queued["run_id"] + "/results")
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["state"] == "SUCCESS" and len(payload["results"]) == 1
+    result = payload["results"][0]
+    assert result["zone_id"] == s["zone"]
+    assert result["needs_verification"]
+    assert result["insufficient_evidence"]
+    assert result["details"]["exploratory"]
+    assert result["details"]["missing_criteria_count"] >= 3
+    assert result["score_lower"] <= result["priority_score"] <= result["score_upper"]
+    assert len(result["details"]["factors"]) == 8
+    with env["owner"].begin() as db:
+        assert (
+            db.execute(
+                text("SELECT count(*) FROM model.priority_factors WHERE run_id=:r"),
+                {"r": queued["run_id"]},
+            ).scalar()
+            == 8
+        )
+        assert (
+            db.execute(
+                text(
+                    "SELECT count(*) FROM audit.events "
+                    "WHERE action='PRIORITY_QUEUED' AND emergency_id=:e"
+                ),
+                {"e": eid},
+            ).scalar()
+            == 1
+        )
+        with pytest.raises(DBAPIError), db.begin_nested():
+            db.execute(
+                text("UPDATE model.priority_results SET priority_score=0 WHERE run_id=:r"),
+                {"r": queued["run_id"]},
+            )
+        assert db.execute(text("SELECT to_regclass('planning.decisions')")).scalar() is None
+        assert not db.execute(
+            text(
+                "SELECT has_table_privilege('sipre_metabase_reader',"
+                "'model.priority_results','SELECT')"
+            )
+        ).scalar()
+    with env["reader"].connect() as db:
+        assert db.execute(text("SELECT count(*) FROM analytics.v_priority_results")).scalar() >= 1
+
+
+def test_priority_job_derives_observed_criteria_from_frozen_reports(setup, env):
+    s = setup
+    eid, zid = s["emergency"], s["zone"]
+    operator, analyst = s["clients"]["OPERATOR"], s["clients"]["ANALYST"]
+    metrics = {
+        "severely_injured": (1, "persons"),
+        "trapped": (0, "persons"),
+        "affected_people": (10, "persons"),
+        "vulnerable_affected_unique": (2, "persons"),
+        "health_damage": (0.2, "fraction"),
+        "response_damage": (0.4, "fraction"),
+        "coordination_damage": (0.1, "fraction"),
+        "no_route_confirmed": (0, "boolean_0_1"),
+        "actual_travel_sec": (1800, "seconds"),
+        "baseline_travel_sec": (900, "seconds"),
+        "no_active_essential_need_confirmed": (1, "boolean_0_1"),
+        "water_interruption": (0.6, "fraction"),
+        "electricity_interruption": (0.4, "fraction"),
+        "sanitation_interruption": (0.2, "fraction"),
+        "telecom_interruption": (0.1, "fraction"),
+    }
+    s["post"](
+        operator,
+        f"/emergencies/{eid}/reports",
+        {
+            "zone_id": zid,
+            "source_id": s["source"],
+            "observed_at": (datetime.now(UTC) - timedelta(seconds=2)).isoformat(),
+            "comments": "F4 synthetic observations",
+            "observations": [
+                {
+                    "metric_code": code,
+                    "value_numeric": value,
+                    "unit": unit,
+                    "evidence_status": "OBSERVED",
+                }
+                for code, (value, unit) in metrics.items()
+            ],
+        },
+    )
+    snapshot = s["post"](
+        analyst, f"/emergencies/{eid}/snapshots", {"cutoff_at": datetime.now(UTC).isoformat()}
+    )
+    queued = s["post"](
+        analyst, f"/emergencies/{eid}/priority-runs", {"snapshot_id": snapshot["snapshot_id"]}, 202
+    )
+    assert run_once(env["worker"])
+    result = analyst.get("/api/v1/priority-runs/" + queued["run_id"] + "/results").json()
+    assert result["state"] == "SUCCESS", result
+    row = result["results"][0]
+    criteria = row["details"]["criteria"]
+    assert criteria["C1"]["value"] == pytest.approx(0.65)
+    assert criteria["C3"]["value"] == pytest.approx(0.2)
+    assert criteria["C5"]["value"] == pytest.approx(0.5)
+    assert criteria["C7"]["value"] == 0
+    assert row["details"]["missing_criteria"] == []
+    assert not row["details"]["exploratory"]
+    assert row["score_lower"] == pytest.approx(row["priority_score"])
+    assert row["score_upper"] == pytest.approx(row["priority_score"])
+
+
+def test_simulated_assistance_is_bounded_and_c7_preserves_unserved_time(setup, env):
+    s = setup
+    eid, zid = s["emergency"], s["zone"]
+    operator, analyst = s["clients"]["OPERATOR"], s["clients"]["ANALYST"]
+    with env["owner"].connect() as db:
+        water_id = db.execute(
+            text("SELECT resource_type_id FROM ops.resource_types WHERE code='WATER'")
+        ).scalar()
+    if water_id is None:
+        water_id = s["post"](
+            operator,
+            "/resource-types",
+            {
+                "code": "WATER",
+                "unit": "unit",
+                "discrete": True,
+                "kg_per_unit": "1",
+                "m3_per_unit": "0.01",
+            },
+        )["resource_type_id"]
+    reported = datetime.now(UTC) - timedelta(seconds=2)
+    need_id = s["post"](
+        operator,
+        f"/emergencies/{eid}/needs",
+        {
+            "zone_id": zid,
+            "resource_type_id": str(water_id),
+            "quantity": "10",
+            "unit": "unit",
+            "status": "CONFIRMED",
+            "urgency": "DEMO",
+            "source_id": s["source"],
+            "reported_at": reported.isoformat(),
+        },
+    )["need_id"]
+    route = f"/emergencies/{eid}/needs/{need_id}/assistance-events"
+    first = {
+        "quantity": "4",
+        "effective_at": datetime.now(UTC).isoformat(),
+        "source_id": s["source"],
+        "note": "Synthetic partial assistance",
+    }
+    assert s["post"](analyst, route, first, 403)
+    s["post"](operator, route, first)
+    assert s["post"](operator, route, {**first, "quantity": "7"}, 422)
+
+    def calculate():
+        snapshot = s["post"](
+            analyst,
+            f"/emergencies/{eid}/snapshots",
+            {"cutoff_at": datetime.now(UTC).isoformat()},
+        )
+        queued = s["post"](
+            analyst,
+            f"/emergencies/{eid}/priority-runs",
+            {"snapshot_id": snapshot["snapshot_id"]},
+            202,
+        )
+        assert run_once(env["worker"])
+        result = analyst.get("/api/v1/priority-runs/" + queued["run_id"] + "/results").json()
+        assert result["state"] == "SUCCESS", result
+        return result["results"][0]["details"]["criteria"]["C7"]["value"]
+
+    partial = calculate()
+    assert 0 < partial < 1
+    s["post"](
+        operator, route, {**first, "quantity": "6", "effective_at": datetime.now(UTC).isoformat()}
+    )
+    assert calculate() == 0
+    with env["owner"].connect() as db:
+        assert (
+            db.execute(
+                text("SELECT sum(quantity) FROM ops.assistance_events WHERE need_id=:n"),
+                {"n": need_id},
+            ).scalar()
+            == 10
+        )
+        assert (
+            db.execute(
+                text(
+                    "SELECT count(*) FROM ops.inventory_ledger "
+                    "WHERE reason='Synthetic partial assistance'"
+                )
+            ).scalar()
+            == 0
+        )

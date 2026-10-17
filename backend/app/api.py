@@ -13,6 +13,8 @@ from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError
 
 from app import schemas
+from app.prioritization.core import ModelError
+from app.prioritization.demo_profile import profile as demo_priority_profile
 from app.security import database, event, hasher, principal, require, scoped
 
 router = APIRouter(prefix="/api/v1", tags=["foundation"])
@@ -516,6 +518,54 @@ def need(
     return mutation(db, user, request, body.model_dump(mode="json"), action)
 
 
+@router.post("/emergencies/{emergency_id}/needs/{need_id}/assistance-events")
+def assistance_event(
+    emergency_id: UUID,
+    need_id: UUID,
+    body: schemas.AssistanceEvent,
+    request: Request,
+    db=Depends(database, scope="function"),
+    user=Depends(principal),
+):
+    scoped(db, user, emergency_id, "write")
+
+    def action():
+        scoped(db, user, emergency_id, "write", mutable=True)
+        row = (
+            db.execute(
+                text("""SELECT zone_id FROM ops.needs
+            WHERE emergency_id=:e AND need_id=:n"""),
+                {"e": emergency_id, "n": need_id},
+            )
+            .mappings()
+            .first()
+        )
+        if row is None:
+            raise HTTPException(404, "NEED_NOT_FOUND")
+        event_id = uuid4()
+        insert(
+            db,
+            "ops.assistance_events",
+            {
+                "event_id": event_id,
+                "emergency_id": emergency_id,
+                "zone_id": row["zone_id"],
+                "need_id": need_id,
+                "quantity": body.quantity,
+                "effective_at": body.effective_at,
+                "source_id": body.source_id,
+                "note": body.note,
+                "created_by": user["user_id"],
+            },
+        )
+        event(
+            db, user["user_id"], "ASSISTANCE_RECORDED", "assistance_events", event_id, emergency_id
+        )
+        return {"event_id": event_id, "need_id": need_id, "mode": "SIMULATED"}
+
+    return mutation(db, user, request, body.model_dump(mode="json"), action)
+
+
 GLOBAL_READ = {
     "sources": "SELECT * FROM ops.sources",
     "resource-types": "SELECT * FROM ops.resource_types",
@@ -532,16 +582,26 @@ SCOPED_READ = {
     "source_id,baseline_at,"
     "quality,ST_AsGeoJSON(geom)::jsonb AS geometry FROM geo.zones WHERE emergency_id=:e",
     "reports": "SELECT *,extract(epoch FROM (:cutoff-observed_at))/3600 AS data_age_hours "
-    "FROM ops.reports WHERE emergency_id=:e AND observed_at<=:cutoff",
-    "needs": "SELECT * FROM ops.needs WHERE emergency_id=:e AND reported_at<=:cutoff",
+    "FROM ops.reports WHERE emergency_id=:e AND observed_at<=:cutoff "
+    "AND recorded_at<=:cutoff",
+    "needs": "SELECT * FROM ops.needs WHERE emergency_id=:e AND reported_at<=:cutoff "
+    "AND recorded_at<=:cutoff",
+    "assistance-events": "SELECT * FROM ops.assistance_events "
+    "WHERE emergency_id=:e AND effective_at<=:cutoff AND recorded_at<=:cutoff",
     "observations": "SELECT o.*,r.emergency_id,r.source_id,r.observed_at,r.recorded_at FROM "
     "ops.observations o JOIN ops.reports r USING(report_id) "
-    "WHERE r.emergency_id=:e AND r.observed_at<=:cutoff",
+    "WHERE r.emergency_id=:e AND r.observed_at<=:cutoff "
+    "AND r.recorded_at<=:cutoff",
     "road-nodes": "SELECT node_id,emergency_id,external_id,"
     "ST_AsGeoJSON(geom)::jsonb AS geometry FROM geo.road_nodes WHERE emergency_id=:e",
     "road-edges": "SELECT edge_id,emergency_id,external_id,from_node,to_node,length_m,travel_sec,"
     "status,allowed_vehicle_types,network_revision,ST_AsGeoJSON(geom)::jsonb AS geometry "
     "FROM geo.road_edges WHERE emergency_id=:e",
+    "route-candidates": "SELECT route_id,emergency_id,external_id,depot_id,zone_id,"
+    "vehicle_type,length_m,travel_sec,unload_sec,return_length_m,return_travel_sec,"
+    "require_return,route_status,network_revision,created_at,expires_at "
+    "FROM geo.route_candidates WHERE emergency_id=:e AND created_at<=:cutoff "
+    "AND expires_at>:cutoff",
 }
 
 
@@ -605,7 +665,13 @@ def snapshot(
         # Lock emergency then stock revision; every stock writer takes the latter.
         e = scoped(db, user, emergency_id, "snapshot", mutable=True)
         revision = db.execute(text("SELECT core.lock_inventory_revision()")).scalar_one()
-        payload = {"emergency": dict(e), "cutoff_at": body.cutoff_at, "mode": "SIMULATED"}
+        network_revision = db.execute(text("SELECT core.lock_network_revision()")).scalar_one()
+        payload = {
+            "emergency": dict(e),
+            "cutoff_at": body.cutoff_at,
+            "mode": "SIMULATED",
+            "network_revision": network_revision,
+        }
         for name, query in SCOPED_READ.items():
             payload[name] = [
                 dict(x)
@@ -627,6 +693,7 @@ def snapshot(
                 "cutoff_at": body.cutoff_at,
                 "input_revision": e["input_revision"],
                 "inventory_revision": revision,
+                "network_revision": network_revision,
                 "fingerprint": fingerprint,
                 "payload": payload,
                 "created_by": user["user_id"],
@@ -707,13 +774,137 @@ def get_job(job_id: UUID, db=Depends(database, scope="function"), user=Depends(p
     return dict(row)
 
 
-@router.post("/emergencies/{emergency_id}/priority-runs")
 @router.post("/emergencies/{emergency_id}/optimization-runs")
 def unavailable_engine(
     emergency_id: UUID, db=Depends(database, scope="function"), user=Depends(principal)
 ):
     scoped(db, user, emergency_id, "jobs")
     raise HTTPException(501, "ENGINE_NOT_IMPLEMENTED_IN_PHASE9")
+
+
+@router.post("/emergencies/{emergency_id}/priority-runs")
+def create_priority_run(
+    emergency_id: UUID,
+    body: schemas.PriorityRun,
+    request: Request,
+    db=Depends(database, scope="function"),
+    user=Depends(principal),
+):
+    scoped(db, user, emergency_id, "jobs")
+
+    def action():
+        emergency = scoped(db, user, emergency_id, "jobs", mutable=True)
+        if emergency["mode"] != "SIMULATED":
+            raise HTTPException(422, "SIMULATED_ONLY")
+        snapshot_row = db.execute(
+            text("""SELECT snapshot_id FROM model.input_snapshots
+            WHERE snapshot_id=:s AND emergency_id=:e"""),
+            {"s": body.snapshot_id, "e": emergency_id},
+        ).scalar()
+        if snapshot_row is None:
+            raise HTTPException(422, "SNAPSHOT_EMERGENCY_MISMATCH")
+        try:
+            configured = demo_priority_profile()
+        except ModelError as exc:
+            raise HTTPException(409, "MODEL_NOT_CONFIGURED") from exc
+        fingerprint = hashlib.sha256(canonical(configured).encode()).hexdigest()
+        job_id, run_id = uuid4(), uuid4()
+        insert(
+            db,
+            "core.job_runs",
+            {
+                "job_id": job_id,
+                "emergency_id": emergency_id,
+                "snapshot_id": body.snapshot_id,
+                "kind": "PRIORITY",
+                "created_by": user["user_id"],
+            },
+        )
+        insert(
+            db,
+            "model.priority_runs",
+            {
+                "run_id": run_id,
+                "emergency_id": emergency_id,
+                "snapshot_id": body.snapshot_id,
+                "job_id": job_id,
+                "profile_version": configured["version"],
+                "profile_hash": fingerprint,
+                "profile": configured,
+                "created_by": user["user_id"],
+            },
+            ("profile",),
+        )
+        event(db, user["user_id"], "PRIORITY_QUEUED", "priority_runs", run_id, emergency_id)
+        return {
+            "run_id": run_id,
+            "job_id": job_id,
+            "state": "QUEUED",
+            "profile_version": configured["version"],
+            "profile_validation": configured["validation"],
+        }
+
+    return mutation(db, user, request, body.model_dump(mode="json"), action, 202)
+
+
+@router.get("/emergencies/{emergency_id}/priority-runs")
+def list_priority_runs(
+    emergency_id: UUID,
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    db=Depends(database, scope="function"),
+    user=Depends(principal),
+):
+    scoped(db, user, emergency_id)
+    return [
+        dict(row)
+        for row in db.execute(
+            text("""SELECT p.run_id,p.snapshot_id,p.job_id,p.profile_version,
+            p.profile_hash,p.created_at,j.state,j.error_code
+            FROM model.priority_runs p JOIN core.job_runs j USING(job_id)
+            WHERE p.emergency_id=:e
+            ORDER BY p.created_at DESC,p.run_id LIMIT :l OFFSET :o"""),
+            {"e": emergency_id, "l": limit, "o": offset},
+        ).mappings()
+    ]
+
+
+@router.get("/priority-runs/{run_id}/results")
+def priority_results(
+    run_id: UUID,
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    db=Depends(database, scope="function"),
+    user=Depends(principal),
+):
+    run = (
+        db.execute(
+            text("""SELECT p.emergency_id,p.profile_version,p.profile_hash,p.snapshot_id,
+        p.profile->>'validation' AS profile_validation,j.state,j.error_code
+        FROM model.priority_runs p JOIN core.job_runs j USING(job_id) WHERE p.run_id=:r"""),
+            {"r": run_id},
+        )
+        .mappings()
+        .first()
+    )
+    if run is None:
+        raise HTTPException(404, "PRIORITY_RUN_NOT_FOUND")
+    scoped(db, user, run["emergency_id"])
+    rows = (
+        [
+            dict(row)
+            for row in db.execute(
+                text("""SELECT zone_id,priority_rank,priority_score,score_lower,score_upper,
+            priority_level,uncertainty_index,needs_verification,insufficient_evidence,
+            details FROM model.priority_results WHERE run_id=:r
+            ORDER BY priority_rank LIMIT :l OFFSET :o"""),
+                {"r": run_id, "l": limit, "o": offset},
+            ).mappings()
+        ]
+        if run["state"] == "SUCCESS"
+        else []
+    )
+    return {**dict(run), "run_id": run_id, "results": rows}
 
 
 @router.get("/audit/events")

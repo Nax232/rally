@@ -18,7 +18,14 @@ class Input(BaseModel):
 
     @model_validator(mode="after")
     def dates_not_future(self):
-        for name in ("start_at", "observed_at", "reported_at", "baseline_at", "cutoff_at"):
+        for name in (
+            "start_at",
+            "observed_at",
+            "reported_at",
+            "baseline_at",
+            "cutoff_at",
+            "effective_at",
+        ):
             value = getattr(self, name, None)
             if value and value > datetime.now(UTC):
                 raise ValueError(f"{name} cannot be in the future")
@@ -126,6 +133,13 @@ class Need(Input):
         return self
 
 
+class AssistanceEvent(Input):
+    quantity: Positive
+    effective_at: AwareDatetime
+    source_id: UUID
+    note: Text
+
+
 class Resource(Input):
     code: Text
     unit: Text
@@ -186,6 +200,10 @@ class Snapshot(Input):
 class Job(Input):
     snapshot_id: UUID
     kind: Literal["SNAPSHOT_VERIFY"] = "SNAPSHOT_VERIFY"
+
+
+class PriorityRun(Input):
+    snapshot_id: UUID
 
 
 EdgeStatus = Literal["VERIFIED_OPEN", "VERIFIED_RESTRICTED", "BLOCKED", "UNKNOWN"]

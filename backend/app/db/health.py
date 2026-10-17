@@ -33,7 +33,7 @@ def database_ready(engine: Engine | None) -> bool:
                     text(
                         "SELECT PostGIS_Version() IS NOT NULL AND "
                         "EXISTS(SELECT 1 FROM core.alembic_version "
-                        "WHERE version_num='0005_gis_network')"
+                        "WHERE version_num='0008_simulated_assistance')"
                     )
                 ).scalar()
             )

@@ -25,7 +25,7 @@ def test_postgis_and_migration_head(engine):
         assert connection.execute(text("SELECT PostGIS_Version()")).scalar()
         assert connection.execute(
             text("SELECT version_num FROM core.alembic_version")
-        ).scalar() == ("0005_gis_network")
+        ).scalar() == ("0008_simulated_assistance")
         schemas = set(
             connection.execute(
                 text("SELECT schema_name FROM information_schema.schemata")
@@ -58,3 +58,6 @@ def test_reader_cannot_access_raw_schemas_or_create_in_database(engine):
                 text("SELECT has_database_privilege(:role, current_database(), 'CREATE')"),
                 {"role": role},
             ).scalar()
+        assert not connection.execute(
+            text("SELECT has_table_privilege('sipre_app', 'geo.route_candidate_edges', 'DELETE')")
+        ).scalar()

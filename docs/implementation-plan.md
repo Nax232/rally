@@ -92,7 +92,7 @@ Las fases F9–F16 mencionadas en F6 son agrupaciones históricas, no estos hito
 
 ## Hito 7 — GIS, rutas y bloqueos (se ejecuta antes de H5/H6)
 
-- **Estado (2026-10-17):** implementado, `READY_FOR_REVIEW`; pendiente de aprobación humana. Evidencia: suite local 51 pruebas en verde (unit + integración con PostGIS), ruff limpio, migración `0005_gis_network` con triggers de revisión/invalidación/guard/auditoría; Docker/E2E no re-ejecutables en este entorno (`wsl.exe` ausente del PATH). D18 aplicada como política operativa sin ratificación formal.
+- **Estado (2026-10-17):** implementado, `READY_FOR_REVIEW`; pendiente de aprobación humana. Evidencia: suite local y Docker 51 pruebas en verde (unit + integración con PostGIS), ruff limpio, migraciones `0005_gis_network` y `0006_route_invalidation`, 17/17 checks Compose y 19/19 E2E. D18 aplicada como política operativa sin ratificación formal.
 - **Objetivo:** preparar accesibilidad y rutas verificadas dentro del escenario.
 - **Dependencias:** H4, D18 y caducidades técnicas aprobadas; red sintética de pruebas (no confirmatoria).
 - **Archivos/módulos:** `gis/`, `transport/`, `zones/`, tablas geo, migraciones y tests GIS.

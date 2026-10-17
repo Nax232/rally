@@ -2,17 +2,20 @@
 
 Prototipo universitario chileno. **SIPRE recomienda; la autoridad humana decide.**
 
-Estado actual: **Fase 9 validada técnicamente y pendiente de aprobación formal (`READY_FOR_REVIEW`)**. H1–H4 están implementados y verificados contra PostgreSQL/PostGIS real, incluidos Docker, migraciones, API, worker, autenticación, RBAC y auditoría. No se implementaron motores de decisión, ni simulador, ni experimentos confirmatorios (H5–H14). Véase [dictamen F9](docs/phase9-closeout.md).
+Estado actual: **Fase 9 cerrada tras aprobación humana (`CLOSED_AFTER_APPROVAL`)**. Fase 10/H5 tiene implementado el motor académico AHP-TOPSIS, sus datos y API, con perfil `SIMULATED` sintético pendiente de ratificación numérica. H7 GIS/rutas está implementado y pendiente de revisión formal propia. No se implementaron el motor de optimización F5, decisiones confirmadas, simulador ni experimentos confirmatorios. Véanse [dictamen F9](docs/phase9-closeout.md) y [estado F10](docs/phase10-status.md).
 
 ## Qué funciona ahora
 
 - API FastAPI completa de F9: CRUD con idempotencia, snapshots con fingerprint, cola de jobs durable y seed demostrativo, además de liveness y readiness PostgreSQL/PostGIS separadas (readiness exige PostGIS y el head de migración).
+- F10: AHP-TOPSIS anclado F4, ocho criterios con datos faltantes explícitos, incertidumbre,
+  intervalos, factores, asistencia simulada y corridas persistidas desde snapshots. El
+  perfil [DEMO sintético](docs/phase10-demo-profile.md) está sujeto a revisión.
 - Autenticación con sesiones Argon2id y CSRF, capacidades explícitas sin herencia de rol, auditoría persistente e inmutable, y un único envoltorio de error `{"error":{"code":...,"correlation_id":...}}`.
 - Esquema completo con dominios, restricciones (desconocido con `NULL`, NaN/Inf, geometría 4326, inmutabilidad) y segregación por rol de base de datos.
 - Compose con PostgreSQL/PostGIS, roles de conexión separados, migrador y Metabase opcional con base de aplicación independiente y lector restringido a vistas analytics.
 - Entorno Python 3.12, lock universal `uv.lock` y exports con hashes para Docker.
 - Credenciales locales aleatorias en `.env` ignorado por Git; imágenes fijadas por digest.
-- Suite local: **37 pruebas aprobadas, 0 omitidas** con BD real; 19 checks E2E HTTP sin dobles y 16 verificaciones Docker, todas correctas.
+- Suite local y Docker: **69 pruebas aprobadas, 0 omitidas** con BD real; 21 checks E2E HTTP sin dobles y 17 verificaciones Docker, todas correctas.
 
 ## Requisitos y límites
 
@@ -30,8 +33,8 @@ Desde la raíz del repositorio, en PowerShell:
 
 # Validar sin imprimir las credenciales resueltas.
 docker compose config --quiet
-docker compose build api migrate
-docker compose up -d api
+docker compose build api migrate worker
+docker compose up -d api worker
 
 # BI opcional; su setup inicial es independiente de usuarios SIPRE.
 docker compose --profile bi up -d metabase
@@ -41,7 +44,7 @@ En la máquina de trabajo `.env` ya fue generado. No repetir configuración ni r
 
 API: [liveness](http://127.0.0.1:8000/api/v1/health/live), [readiness](http://127.0.0.1:8000/api/v1/health/ready), [OpenAPI](http://127.0.0.1:8000/docs). Metabase: [setup local](http://127.0.0.1:3000). Los enlaces sólo responderán después de arrancar los servicios. PostgreSQL no publica puerto al host.
 
-La migración `0001_namespaces` crea los namespaces F6 y las restricciones de acceso iniciales; las migraciones `0002`–`0004` añaden el esquema de negocio completo. La aplicación no tiene credenciales de superusuario/migración. El lector BI sólo tiene acceso al namespace analytics, con una vista de estado y sin escritura.
+La migración `0001_namespace_foundation` crea los namespaces F6 y las restricciones de acceso iniciales; `0002`–`0004` añaden el esquema de negocio, `0005` incorpora GIS, `0006` corrige la invalidación de rutas y `0007`–`0008` añaden resultados de priorización y asistencia simulada. La aplicación no tiene credenciales de superusuario/migración. El lector BI sólo tiene acceso al namespace analytics, con vistas de lectura y sin escritura.
 
 El servicio `worker-smoke` es una comprobación puntual, no un procesador de jobs:
 
@@ -63,10 +66,10 @@ Si Python no está registrado, crear `.venv` con `uv venv --python RUTA_ABSOLUTA
 Con una base real disponible, el wrapper local aísla credenciales y ejecuta la suite completa:
 
 ```powershell
-.\scripts\local-runtime.py test
+.\.venv\Scripts\python.exe scripts/local-runtime.py test
 ```
 
-Las pruebas PostgreSQL requieren `SIPRE_TEST_DATABASE_URL` (y las variantes `SIPRE_TEST_APP_URL`, `SIPRE_TEST_WORKER_URL`, `SIPRE_TEST_READER_URL`) apuntando a una **base de prueba preparada** con el bootstrap y migración, como migrador. No crean ni destruyen bases automáticamente. Con la BD local se ejecutaron las 37 pruebas sin omisiones.
+Las pruebas PostgreSQL requieren `SIPRE_TEST_DATABASE_URL` (y las variantes `SIPRE_TEST_APP_URL`, `SIPRE_TEST_WORKER_URL`, `SIPRE_TEST_READER_URL`) apuntando a una **base de prueba preparada** con el bootstrap y migración, como migrador. No crean ni destruyen bases automáticamente. Con la BD local se ejecutaron las 69 pruebas sin omisiones.
 
 Para correr las pruebas en el contenedor (ya verificado contra la base real de validación):
 
@@ -74,6 +77,17 @@ Para correr las pruebas en el contenedor (ya verificado contra la base real de v
 docker compose --profile test build tests
 docker compose --profile test run --rm tests
 ```
+
+Con el stack ya iniciado y usuarios de demostración creados, los verificadores versionados
+ejecutan los controles de infraestructura y el flujo HTTP. En Linux/WSL:
+
+```sh
+sh scripts/validate-phase9-compose.sh .env sipre
+sh scripts/run-phase9-e2e.sh .env sipre
+```
+
+El primer verificador crea bases temporales con nombres propios para comprobar migración y
+restauración, y las elimina al terminar. No modifica la base principal `sipre`.
 
 Sin DB se puede inspeccionar la API localmente:
 
@@ -98,14 +112,13 @@ NumPy/OR-Tools/NetworkX están instalados sólo para comprobar compatibilidad; e
 
 ## Próximas puertas
 
-1. Ratificar F2/F3 y resolver las decisiones C01 (modo), C02 (estados) y C03 (DECISION_MAKER), que el equipo aún no ha aprobado formalmente.
-2. Decidir el primer commit de referencia (G09); no se realizan commits automáticos.
-3. Aceptar o rechazar el cierre de F9 con la evidencia presente. Sólo una aprobación humana explícita permite registrar `CLOSED_AFTER_APPROVAL`.
-4. Entregar evidencia y pedir autorización antes de F10/motor de priorización (H5 en adelante).
+1. Revisar y ratificar los números del perfil DEMO F10; su aprobación de propuesta no equivale a validación experta.
+2. Revisar H7 GIS/rutas y el límite de C5 basado en hechos del mismo snapshot. La ausencia de candidato no demuestra aislamiento.
+3. Sólo después del cierre humano de F10, avanzar a H6/F11 optimización OR-Tools.
 
 Ver [estado F9](docs/phase9-status.md), [pauta y evidencias](docs/evaluation-rubric.md), [plan F8](docs/implementation-plan.md) y [decisiones](docs/risks-and-decisions.md). No se publicaron resultados experimentales ni se afirma validación operacional.
 
-## Actualización de auditoría F9 — 2026-10-16
+## Actualización de auditoría F9 — 2026-10-17
 
-F2 y F3 ya están disponibles como `SIPRE_FORMULACION_v1.md` y `SIPRE_SRS_v1.md` en la raíz y fueron revisados completos. D01 queda subsanada en cuanto a recepción; ratificación y discrepancias quedan pendientes. H1–H4 están implementados y validados contra PostgreSQL/PostGIS real, incluidos Docker, migraciones, API, worker, autenticación, RBAC y auditoría. La Fase 9 queda en estado **`READY_FOR_REVIEW`**, pendiente de aprobación formal del equipo. Dictamen vigente: [docs/phase9-closeout.md](docs/phase9-closeout.md).
+F2 y F3 ya están disponibles como `SIPRE_FORMULACION_v1.md` y `SIPRE_SRS_v1.md` en la raíz y fueron revisados completos. D01 queda subsanada en cuanto a recepción; la excepción `SIMULATED` quedó decidida por el usuario. H1–H4 están implementados y validados contra PostgreSQL/PostGIS real. El usuario aprobó expresamente cerrar Fase 9 el 2026-10-17; su estado es **`CLOSED_AFTER_APPROVAL`**. Dictamen: [docs/phase9-closeout.md](docs/phase9-closeout.md).
 

@@ -1,0 +1,3 @@
+/* Las rutas se mantienen descritas en la tabla operacional; no deben cruzar visualmente el mapa. */
+.route { display: none !important; }
+.modal-backdrop[hidden] { display: none !important; }

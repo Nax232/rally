@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="SIPRE · Centro de comando para post-emergencia · Prototipo demostrativo simulado" />
+  <title>SIPRE · Centro de Operaciones</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="overrides.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-mark">S</div>
+        <div><strong>SIPRE</strong><span>Centro de comando</span></div>
+      </div>
+      <div class="demo-badge"><span class="pulse"></span> ENTORNO SIMULADO</div>
+      <nav class="nav" aria-label="Navegación principal">
+        <div class="nav-label">OPERACIONES</div>
+        <button class="nav-item active" data-view="overview"><span class="nav-icon">⌂</span><span>Centro de operaciones</span><kbd>1</kbd></button>
+        <button class="nav-item" data-view="emergencies"><span class="nav-icon">⚠</span><span>Emergencias</span><em class="nav-count">3</em></button>
+        <button class="nav-item" data-view="map"><span class="nav-icon">⌖</span><span>Mapa operacional</span></button>
+        <button class="nav-item" data-view="prioritization"><span class="nav-icon">↗</span><span>Priorización</span><em class="nav-count orange">4</em></button>
+        <div class="nav-label">LOGÍSTICA</div>
+        <button class="nav-item" data-view="resources"><span class="nav-icon">▣</span><span>Recursos</span></button>
+        <button class="nav-item" data-view="optimization"><span class="nav-icon">⇄</span><span>Optimización</span><em class="nav-count green">2</em></button>
+        <button class="nav-item" data-view="validation"><span class="nav-icon">✓</span><span>Validación humana</span><em class="nav-count red">5</em></button>
+        <div class="nav-label">ANÁLISIS</div>
+        <button class="nav-item" data-view="simulations"><span class="nav-icon">◈</span><span>Simulaciones</span></button>
+        <button class="nav-item" data-view="audit"><span class="nav-icon">≡</span><span>Auditoría</span></button>
+      </nav>
+      <div class="sidebar-bottom">
+        <button class="nav-item" data-view="settings"><span class="nav-icon">⚙</span><span>Configuración</span></button>
+        <div class="user-card"><div class="avatar">MR</div><div><strong>María Rojas</strong><span>Coordinadora regional</span></div><span class="more">•••</span></div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <button class="mobile-menu" id="mobileMenu">☰</button>
+        <div class="breadcrumb"><span>SIPRE</span><b>/</b><strong id="breadcrumbTitle">Centro de operaciones</strong></div>
+        <div class="top-actions">
+          <div class="active-emergency"><span class="status-dot"></span><div><small>EMERGENCIA ACTIVA</small><strong>Frente de mal tiempo · Biobío</strong></div><span class="chevron">⌄</span></div>
+          <div class="top-divider"></div><div class="live-status"><span class="green-dot"></span> Sistema operativo</div>
+          <button class="icon-btn" id="notificationBtn" aria-label="Notificaciones">♢<i>4</i></button>
+          <div class="clock" id="clock">14:32:08<span>CLT</span></div>
+        </div>
+      </header>
+
+      <div class="page-wrap">
+        <div id="view-root"></div>
+      </div>
+    </main>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+  <div class="modal-backdrop" id="modalBackdrop" hidden><section class="modal" id="modal" role="dialog" aria-modal="true"></section></div>
+  <script src="app.js"></script>
+</body>
+</html>

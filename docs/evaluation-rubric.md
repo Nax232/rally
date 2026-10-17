@@ -34,7 +34,7 @@ No se asume un criterio adicional de 10 puntos ni se normaliza el total a 100. D
 |---|---|---|---|
 | PA-A1 | Solución innovadora | F4/F5: combinación explicable AHP-TOPSIS/uncertidumbre/MIP y comparación FIFO; TR-06–12/21–24 | Diseño disponible; demostración comparativa pendiente (H5–H6) |
 | PA-A2 | Capacidad creativa | Registro de decisiones, alternativas, iteraciones justificadas y límites; TR-01 | Plan F8 y registro de avance F9 disponibles; no atribuir a equipo trabajo no realizado |
-| PA-A3 | Tecnologías apropiadas | Dependencias justificadas, stack abierto, arquitectura modular, prueba de compatibilidad; TR-19 | Python/SCIP comprobados; despliegue completo validado en WSL/Docker (16/16) |
+| PA-A3 | Tecnologías apropiadas | Dependencias justificadas, stack abierto, arquitectura modular, prueba de compatibilidad; TR-19 | Python/SCIP comprobados; despliegue completo validado en WSL/Docker (17/17) |
 | PA-A4 | Usabilidad | Recorrido por tareas/roles, errores/flags visibles, teclado, observación de usuarios; TR-16, H9 | Portal pendiente; no medir usabilidad con OpenAPI |
 | PA-B1 | Problemática específica | Formulación/SRS, caso territorial y restricciones; TR-02–05/11/12 | F2/F3 recibidos y auditados; ratificación pendiente |
 | PA-B2 | Valor social | Justificación de necesidades, prioridad humanitaria antes de km, revisión humana y límites; TR-08/11/14 | Diseño disponible; validación con usuarios pendiente |
@@ -46,7 +46,7 @@ No se asume un criterio adicional de 10 puntos ni se normaliza el total a 100. D
 | PA-D1 | Base teórica | F4/F5, fórmulas, supuestos, fuentes y contraste documental; TR-06/07/10 | Especificaciones disponibles; PDF citado y validación experta ausentes |
 | PA-D2 | Recursos de fácil obtención | Instalación local reproducible, software accesible y requisitos de hardware medidos; TR-19 | Locks/README disponibles; runtime Docker habilitado y validado en WSL |
 | PA-D3 | Necesidades de usuarios | SRS, capacidades y revisión con roles representativos; TR-02/14/16 | SRS recibido y auditado; evaluación con usuarios pendiente |
-| PA-D4 | Validación técnica | Tests ejecutados, logs, constraints, snapshots, concurrencia y BI; TR-01–25 | **37 pruebas** con BD real, **19 checks E2E** y **16 verificaciones Docker**, todas correctas; validación de motores pendiente (H5–H6) |
+| PA-D4 | Validación técnica | Tests ejecutados, logs, constraints, snapshots, concurrencia y BI; TR-01–25 | **51 pruebas** con BD real local y Docker, **19 checks E2E** y **17 verificaciones Docker**, todas correctas; validación de motores pendiente (H5–H6) |
 
 ## Evidencia que no puede sustituirse por afirmaciones
 

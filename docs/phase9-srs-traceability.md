@@ -1,6 +1,6 @@
 # Fase 9 — Trazabilidad contra F2/F3
 
-Fecha: 2026-10-16. Revisión de implementación tras ejecutar H1–H4; estado de cierre:
+Fecha de actualización: 2026-10-17. Revisión de implementación tras ejecutar H1–H4 y H7 GIS; estado de cierre F9:
 **READY_FOR_REVIEW** (pendiente de aprobación formal).
 
 ## Fuentes y criterio
@@ -58,9 +58,9 @@ planificados para H5–H8.
 | RF-016 | Registrar vehículos y unidades con identidad física, clase, capacidad y estado | assets · H2–H3 | IMPLEMENTED_AND_TESTED | Activos con capacidad positiva e identidad única |
 | RF-017 | Registrar disponibilidad/estado de vehículos | assets · H2–H3 | IMPLEMENTED_AND_TESTED | Estados con revisión de fila |
 | RF-018 | Respetar capacidad de carga | gis/transport/optimization · H7/H6/H8 | PLANNED_LATER | Capacidades positivas e identidad de activos se exigen ya en RF-016; rutas y cargas calculadas se prueban en hitos posteriores. |
-| RF-019 | Registrar condiciones y restricciones de arcos viales | gis/transport/optimization · H7/H6/H8 | PLANNED_LATER | Capacidades positivas e identidad de activos se exigen ya en RF-016; rutas y cargas calculadas se prueban en hitos posteriores. |
-| RF-020 | Excluir rutas bloqueadas | gis/transport/optimization · H7/H6/H8 | PLANNED_LATER | Capacidades positivas e identidad de activos se exigen ya en RF-016; rutas y cargas calculadas se prueban en hitos posteriores. |
-| RF-021 | Actualizar bloqueo y provocar invalidación de propuestas antiguas | gis/transport/optimization · H7/H6/H8 | PLANNED_LATER | Capacidades positivas e identidad de activos se exigen ya en RF-016; rutas y cargas calculadas se prueban en hitos posteriores. |
+| RF-019 | Registrar condiciones y restricciones de arcos viales | gis · H7 | IMPLEMENTED_AND_TESTED | Arcos dirigidos, estados, clases permitidas, revisión y pruebas GIS unitarias/integradas |
+| RF-020 | Excluir rutas bloqueadas | gis · H7; optimización H6 | IMPLEMENTED_AND_TESTED | Proveedor H7 no devuelve candidatos que crucen BLOCKED/UNKNOWN; uso por solver pendiente H6 |
+| RF-021 | Actualizar bloqueo y provocar invalidación de propuestas antiguas | gis/planning · H7/H8 | PLANNED_LATER | H7 invalida candidatos y preserva auditoría, probado en Docker tras migración `0006`; marcado STALE de recomendaciones depende de H8 |
 | RF-022 | Caracterizar C1 gravedad humana | prioritization/profiles · H5 (GIS H7) | PLANNED_LATER | F4: 17 pruebas pendientes; para fuentes y NULL ver RF-032/RQD. No hay motor implementado. |
 | RF-023 | Caracterizar C2 población afectada | prioritization/profiles · H5 (GIS H7) | PLANNED_LATER | F4: 17 pruebas pendientes; para fuentes y NULL ver RF-032/RQD. No hay motor implementado. |
 | RF-024 | Caracterizar C3 vulnerabilidad | prioritization/profiles · H5 (GIS H7) | PLANNED_LATER | F4: 17 pruebas pendientes; para fuentes y NULL ver RF-032/RQD. No hay motor implementado. |
@@ -115,7 +115,7 @@ planificados para H5–H8.
 | RNF-008 | Rendimiento | benchmarks · H12 | PLANNED_LATER | Sin SLA medido ni motores. |
 | RNF-009 | Escalabilidad | db · H2; carga H12 | IMPLEMENTED_NOT_TESTED | Separación e índices presentes; carga 10/30/100 posterior |
 | RNF-010 | Interoperabilidad | API · H3; export H14 | IMPLEMENTED_AND_TESTED (REST) | REST con contratos JSON/GeoJSON; export CSV en H14 |
-| RNF-011 | Portabilidad | docker/config · H1 | IMPLEMENTED_AND_TESTED | Build y arranque validados en WSL/Docker (16/16) |
+| RNF-011 | Portabilidad | docker/config · H1 | IMPLEMENTED_AND_TESTED | Build y arranque validados en WSL/Docker (17/17) |
 | RNF-012 | Persistencia | db/bootstrap/migrations · H1/H2 | IMPLEMENTED_AND_TESTED | Dos bases, roles, migración online, reinicio y restore verificados |
 | RNF-013 | Georreferenciación | geo · H2 | IMPLEMENTED_AND_TESTED | PostGIS con SRID 4326, constraints y GiST probados |
 | RNF-014 | Usabilidad | UI/Metabase · H9/H10 | PLANNED_LATER | No interfaz operacional ni evaluación de usuarios. |
@@ -127,7 +127,7 @@ planificados para H5–H8.
 | RQD-005 | Desconocido ≠ cero | observations · H2/H3 | IMPLEMENTED_AND_TESTED | `NULL` y `0` distinguidos y probados |
 | RN-001 | Recomendación no equivale a decisión | planning · H5–H8 | PLANNED_LATER | Regla de ejecución futura; RF-014/016 y RNF-004 cubren invariantes de datos iniciales. Ausencia de endpoints no prueba la regla. |
 | RN-002 | Ausencia de información no significa prioridad cero | planning · H5–H8 | PLANNED_LATER | Regla de ejecución futura; RF-014/016 y RNF-004 cubren invariantes de datos iniciales. Ausencia de endpoints no prueba la regla. |
-| RN-003 | Ruta bloqueada/desconocida no se usa como transitable | planning · H5–H8 | PLANNED_LATER | Regla de ejecución futura; RF-014/016 y RNF-004 cubren invariantes de datos iniciales. Ausencia de endpoints no prueba la regla. |
+| RN-003 | Ruta bloqueada/desconocida no se usa como transitable | gis H7; planning H6/H8 | IMPLEMENTED_AND_TESTED | Proveedor H7 excluye ambos estados y pruebas integradas lo verifican; integración con solver pendiente |
 | RN-004 | No superar stock | planning · H5–H8 | IMPLEMENTED_AND_TESTED (invariante) | Invariante de stock verificado; regla de asignación completa en H6/H8 |
 | RN-005 | No superar capacidad física/temporal del activo | planning · H5–H8 | PLANNED_LATER | Regla de ejecución futura; RF-014/016 y RNF-004 cubren invariantes de datos iniciales. Ausencia de endpoints no prueba la regla. |
 | RN-006 | Déficit no negativo | planning · H5–H8 | PLANNED_LATER | Regla de ejecución futura; RF-014/016 y RNF-004 cubren invariantes de datos iniciales. Ausencia de endpoints no prueba la regla. |
@@ -151,10 +151,11 @@ planificados para H5–H8.
 | Health, 503 sin BD, correlación, redacción básica | RNF-011/012 | IMPLEMENTED_AND_TESTED | unit/test_infrastructure_api.py; conexión feliz simulada y real |
 | Compatibilidad instalada y SCIP mixto mínimo | RNF-011 | IMPLEMENTED_AND_TESTED | pip check; test_dependency_smoke.py |
 | Configuración Compose parseable y puertos locales | RNF-011 | IMPLEMENTED_AND_TESTED | config --quiet y test_delivery_invariants.py |
-| Migración online, roles reales, persistencia | RNF-007/012 | IMPLEMENTED_AND_TESTED | 16/16 verificaciones Docker y 37 pruebas con BD real |
+| Migración online, roles reales, persistencia | RNF-007/012 | IMPLEMENTED_AND_TESTED | 17/17 verificaciones Docker y 51 pruebas con BD real |
 | Contrato único de error y listado de usuarios | RNF-005/010 | IMPLEMENTED_AND_TESTED | test_foundation_api.py; 401/403/422/503 |
-| Modo operacional manual | F3 §4 vs F6 §4 | CONFLICT | C01: código sólo SIMULATED; requiere ratificación |
-| Estados de emergencia | F3 vs contrato F6 | CONFLICT | C02: cuatro estados implementados; requiere ratificación |
+| Modo operacional manual | F3 §4 vs F6 §4 | NOT_APPLICABLE | C01: usuario eligió explícitamente sólo SIMULATED para este prototipo; excepción SRS registrada, sin certificar registros reales |
+| Estados de emergencia | F3 vs contrato F6 | IMPLEMENTED_AND_TESTED | C02: cuatro estados del SRS; estados de análisis/plan son entidades relacionadas, no estados de emergencia |
+| Rol decisor | F3 DECIDER vs F6 DECISION_MAKER | IMPLEMENTED_AND_TESTED | C03: identificador técnico F6, capacidad explícita sin herencia de ADMIN; decisiones reales siguen en H8 |
 
 No existe evidencia para declarar implementado y probado un requisito matemático o experimental
 completo. Pauta: evidencia técnica parcial apoya PA-D1/D2; PA-D4 requiere aprobación formal

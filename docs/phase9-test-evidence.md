@@ -1,22 +1,24 @@
 # Fase 9 — Evidencia de pruebas
 
-Fecha: 2026-10-16. Entorno Windows, Python local 3.12.14 y .venv; proyecto
+Fecha de última ejecución: 2026-10-17. Entorno Windows, Python local 3.12.14 y .venv; proyecto
 `C:/Users/Matias/Downloads/Rally`. Postgres local aislado en `.tools/pgsql` (puerto 55439, base
 `sipre`, data `.tools/phase9-db-live`). Las pruebas no certifican uso operacional real.
 
-## Ejecución completa tras la implementación H1–H4
+## Ejecución actual tras la corrección de rutas y migración 0006
 
 Comandos ejecutados desde la raíz (PowerShell) y en WSL:
 
 | Comando exacto | Resultado observado | Qué acredita |
 |---|---|---|
 | `.venv\Scripts\python.exe -m ruff check backend scripts database/migrations` | exit 0; All checks passed! | Reglas estáticas configuradas |
-| `.venv\Scripts\python.exe scripts\local-runtime.py test` | exit 0; **37 passed, 0 skipped, 4 warnings** | Suite completa con BD real: unitarias, contratos e integración |
-| `wsl -d SIPRE-F9-Validation -- sh artifacts/phase9-docker-validate.sh` | exit 0; **16 correctas, 0 fallos** | Docker real: servicios, segregación, backup/restore, migraciones y suite en contenedor |
-| `wsl -d SIPRE-F9-Validation -- sh artifacts/phase9-e2e-run.sh` | exit 0; **19 correctas, 0 fallos** | Flujo HTTP end-to-end sin dobles de prueba |
+| `uv pip check` | exit 0; **50 paquetes compatibles** | Metadatos de dependencias instaladas |
+| `.venv\Scripts\python.exe scripts/local-runtime.py test` | exit 0; **51 passed, 0 skipped, 4 warnings** | Suite completa con BD real: unitarias, contratos e integración |
+| `wsl.exe -d SIPRE-F9-Validation -- sh -lc 'cd /mnt/c/Users/Matias/Downloads/Rally && sh scripts/validate-phase9-compose.sh .tools/compose-validation.env sipre-f9-validation'` | exit 0; **17 correctas, 0 fallos**, suite Docker **51 passed** | Docker real: servicios, segregación, backup/restore, migración fresca y upgrade `0003`→`0006` |
+| `wsl.exe -d SIPRE-F9-Validation -- sh -lc 'cd /mnt/c/Users/Matias/Downloads/Rally && sh scripts/run-phase9-e2e.sh .tools/compose-validation.env sipre-f9-validation'` | exit 0; **19 correctas, 0 fallos** | Flujo HTTP end-to-end sin dobles de prueba |
 
 La ejecución pytest en Windows se realizó fuera del sandbox con autorización porque una ejecución
-previa quedó bloqueada en el socket interno asyncio. Con la BD local disponible no hubo omisiones.
+previa quedó bloqueada en el socket interno asyncio. El PostgreSQL aislado se inició y ya estaba
+en `0005`; se migró sin borrar datos a `0006`. Con la BD local disponible no hubo omisiones.
 
 JUnit local: [phase9-complete-tests.xml](../artifacts/phase9-complete-tests.xml), ignorado por Git.
 
@@ -37,7 +39,7 @@ JUnit local: [phase9-complete-tests.xml](../artifacts/phase9-complete-tests.xml)
   material de contraseña ausente, conflicto de revisión y aislamiento de snapshot, rutas de fallo
   del worker (`SNAPSHOT_HASH_MISMATCH`, `MAX_ATTEMPTS`) y poda de sesiones expiradas.
 
-Advertencias: tres DeprecationWarning de tipos SWIG sin `__module__`; una StarletteDeprecationWarning
+Advertencias locales: tres DeprecationWarning de tipos SWIG sin `__module__`; una StarletteDeprecationWarning
 sobre TestClient con httpx (sugiere httpx2). No ocultadas; no fueron fallos.
 
 ## Verificaciones Docker y E2E ejecutadas
@@ -45,15 +47,16 @@ sobre TestClient con httpx (sugiere httpx2). No ocultadas; no fueron fallos.
 | Verificación | Resultado |
 |---|---|
 | Liveness y readiness tras reinicio de servicios | Correctas |
-| Alembic head `0004_snapshot_lock` tras reinicio | Correcto |
+| Alembic head `0006_route_invalidation` tras arranque | Correcto |
 | Lector BI con SELECT sobre vista analytics y denegado en tablas de dominio/escritura | Correcto |
 | `sipre_app` denegado en borrar `audit.events` y alterar `inventory_balances` | Correcto |
 | `sipre_worker` denegado en crear usuarios | Correcto |
 | Backup/restore en base nueva sin pérdida (emergencias y eventos conservados) | Correcto |
-| Migración desde base vacía hasta head (26 tablas) | Correcta |
-| Upgrade desde `0003_integrity` a `0004_snapshot_lock` | Correcto |
+| Migración desde base vacía hasta head `0006` | Correcta |
+| Upgrade desde `0003_integrity` a `0006_route_invalidation` | Correcto |
+| Invalidez de rutas al bloquear arco, sin borrado directo de secuencias | Correcta; prueba integrada y permiso SQL |
 | Worker `--once` en contenedor | Correcto |
-| Suite completa en contenedor | **37 passed** |
+| Suite completa en contenedor | **51 passed, 1 warning** |
 | Flujo E2E HTTP: login, creación VIEWER, 403 por rol, 403 sin CSRF, 401 sin sesión, emergencia, fuente, zona MultiPolygon 4326, tipo de recurso, necesidad UNKNOWN con NULL, idempotencia sin duplicados, snapshot con fingerprint, job 202 y 501 explícito | **19/19** |
 
 ## Verificaciones previas de la misma entrega F9
@@ -70,11 +73,12 @@ sobre TestClient con httpx (sugiere httpx2). No ocultadas; no fueron fallos.
 ## Pruebas futuras que siguen fuera del alcance de F9
 
 Las 17 pruebas F4, 28 F5 y 26 F7 están planificadas para sus hitos (71 casos fuente). No se
-ejecutaron ni se sustituyeron por estas 37. No se generaron escenarios definitivos ni se ejecutó
-confirmatorio. La validación de rutas bloqueadas, factibilidad logística completa y decisión
-humana atómica se realiza al implementar H7/H6/H8.
+ejecutaron ni se sustituyeron por estas 51. No se generaron escenarios definitivos ni se ejecutó
+confirmatorio. Las rutas y bloqueos H7 ya están probados; la factibilidad logística completa y
+decisión humana atómica corresponden a H6/H8.
 
 ## Conservación verificada
 
 F2 mantiene SHA-256 `f6a0fe0946783439984d7ecada000e844a989be1f788954b1168de111c522cb5`; F3 mantiene
-`c649954705ac844612a7679a899e8547e25370bddcb6459fd56aa14965dcf6ee`. No se hicieron commits.
+`c649954705ac844612a7679a899e8547e25370bddcb6459fd56aa14965dcf6ee`. El repositorio
+actual tiene commits; esta revisión deja cambios locales sin crear otro commit.
