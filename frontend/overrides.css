@@ -1,3 +1,21 @@
 /* Las rutas se mantienen descritas en la tabla operacional; no deben cruzar visualmente el mapa. */
 .route { display: none !important; }
 .modal-backdrop[hidden] { display: none !important; }
+
+/* Cartografía de referencia aportada para la demo: Viña del Mar. */
+.map-canvas {
+  background-image: linear-gradient(180deg, rgba(8, 24, 42, .08), rgba(8, 24, 42, .18)), url("assets/viña-del-mar-operational-map.png") !important;
+  background-size: cover !important;
+  background-position: center !important;
+}
+.map-canvas::before, .map-canvas::after { opacity: .08; }
+.map-canvas .map-label { display: none; }
+
+/* Puntos ubicados sobre hitos visibles de la imagen: Mall Marina, Estadio Sausalito,
+   Mirador Padre Hurtado, CESFAM Miraflores Alto, Terminal de Buses e Interclínica. */
+.map-canvas .zone[data-zone="Z-01"] { left: 17% !important; top: 18% !important; }
+.map-canvas .zone[data-zone="Z-02"] { left: 43% !important; top: 30% !important; }
+.map-canvas .zone[data-zone="Z-03"] { left: 55% !important; top: 38% !important; }
+.map-canvas .zone[data-zone="Z-04"] { left: 72% !important; top: 45% !important; }
+.map-canvas .zone[data-zone="Z-05"] { left: 32% !important; top: 57% !important; }
+.map-canvas .zone[data-zone="Z-06"] { left: 39% !important; top: 69% !important; }
